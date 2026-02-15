@@ -17,9 +17,7 @@ CaddyGen is a user-friendly web interface for generating [Caddy server](https://
 
 ---
 
-## **Live Demo**
 
-Try CaddyGen now: [demo.caddygen.site](https://demo.caddygen.site)
 
 ### **How to Use**
 1. Click the **"Add New Host"** button.
