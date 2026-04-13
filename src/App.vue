@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Github, ExternalLink, Settings, ChevronDown, ChevronUp, Upload, Sun, Moon, Share2, Check, X } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Github, ExternalLink, Settings, ChevronDown, ChevronUp, Upload, Sun, Moon, Share2, Check, X, Download } from 'lucide-vue-next';
 import type { CaddyHost, CaddyServer } from './types/caddy';
 import { presets } from './presets';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,6 +8,9 @@ import HostForm from './components/HostForm.vue';
 import CaddyConfig from './components/CaddyConfig.vue';
 import ImportModal from './components/ImportModal.vue';
 import LZString from 'lz-string';
+import { strToU8, zip } from 'fflate';
+import { generateCaddyConfig } from './utils/caddyGenerator';
+import { generateNginxConfig } from './utils/nginxGenerator';
 
 // ── Theme ────────────────────────────────────────────────────────────────────
 
@@ -129,6 +132,31 @@ function importHosts(newHosts: CaddyHost[]) {
   persist();
 }
 
+// ── Export all ───────────────────────────────────────────────────────────────
+
+function exportAllServers() {
+  const files: Record<string, Uint8Array> = {};
+  for (const server of servers.value) {
+    if (!server.hosts.length) continue;
+    const isNginx = server.serverType === 'nginx';
+    const content = isNginx ? generateNginxConfig(server.hosts) : generateCaddyConfig(server.hosts);
+    const safeName = server.name.replace(/[^a-z0-9_-]/gi, '_');
+    const filename = isNginx ? `${safeName}.nginx.conf` : `${safeName}.Caddyfile`;
+    files[filename] = strToU8(content);
+  }
+  if (!Object.keys(files).length) return;
+  zip(files, (err, data) => {
+    if (err) return;
+    const blob = new Blob([data], { type: 'application/zip' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'caddygen-configs.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
 // ── Share ─────────────────────────────────────────────────────────────────────
 
 const shareCopied = ref(false);
@@ -226,11 +254,19 @@ onMounted(() => {
             {{ shareCopied ? 'Copied!' : 'Share' }}
           </button>
           <button
+            @click="exportAllServers"
+            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-4 py-2 transition-colors"
+            title="Download all server configs as a zip"
+          >
+            <Download class="w-4 h-4" />
+            Export All
+          </button>
+          <button
             @click="showImportModal = true"
             class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-4 py-2 transition-colors"
           >
             <Upload class="w-4 h-4" />
-            Import Caddyfile
+            Import
           </button>
         </div>
       </div>
