@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Github, ExternalLink, Settings, Settings2, ChevronDown, ChevronUp, Upload, Sun, Moon, Share2, Check, X, Download } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Github, ExternalLink, Settings, Settings2, ChevronDown, ChevronUp, Upload, Sun, Moon, Share2, Check, X, Download, Layers } from 'lucide-vue-next';
 import type { CaddyHost, CaddyServer } from './types/caddy';
 import { presets } from './presets';
 import { v4 as uuidv4 } from 'uuid';
 import HostForm from './components/HostForm.vue';
 import CaddyConfig from './components/CaddyConfig.vue';
 import ImportModal from './components/ImportModal.vue';
+import TemplateModal from './components/TemplateModal.vue';
+import { useTemplates } from './composables/useTemplates';
+import type { HostTemplate } from './composables/useTemplates';
 import LZString from 'lz-string';
 import { strToU8, zip } from 'fflate';
 import DOMPurify from 'dompurify';
@@ -116,6 +119,15 @@ function cancelRename() {
 const showForm = ref(false);
 const editingHost = ref<CaddyHost | undefined>();
 const showImportModal = ref(false);
+const showTemplateModal = ref(false);
+
+const { templates, applyTemplate } = useTemplates();
+
+function addHostFromTemplate(template: HostTemplate) {
+  const config = applyTemplate(template);
+  editingHost.value = { id: uuidv4(), domain: '', ...config };
+  showForm.value = true;
+}
 
 function saveHost(host: CaddyHost) {
   const hosts = activeServer.value.hosts;
@@ -464,13 +476,21 @@ onMounted(() => {
 
       <!-- Hosts list -->
       <div v-if="!showForm">
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
           <button
-            @click="showForm = true"
+            @click="showForm = true; editingHost = undefined"
             class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg px-4 py-2 transition-colors"
           >
             <Plus class="w-4 h-4" />
             Add New Host
+          </button>
+          <button
+            v-if="templates.length > 0"
+            @click="showTemplateModal = true"
+            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-4 py-2 transition-colors"
+          >
+            <Layers class="w-4 h-4" />
+            From Template
           </button>
         </div>
 
@@ -599,6 +619,12 @@ onMounted(() => {
         :show="showImportModal"
         @close="showImportModal = false"
         @import="importHosts"
+      />
+
+      <TemplateModal
+        :show="showTemplateModal"
+        @close="showTemplateModal = false"
+        @select="addHostFromTemplate"
       />
     </div>
 

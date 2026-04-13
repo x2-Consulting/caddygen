@@ -4,6 +4,7 @@ import type { CaddyHost } from '../types/caddy';
 import PresetSelect from './PresetSelect.vue';
 import type { PresetConfig } from '../types/caddy';
 import { v4 as uuidv4 } from 'uuid';
+import { useTemplates } from '../composables/useTemplates';
 
 // FormHost guarantees the always-initialised nested objects are non-optional,
 // which satisfies the Vue template type checker without needing non-null assertions everywhere.
@@ -52,6 +53,18 @@ const emit = defineEmits<{
 }>();
 
 const host = ref<FormHost>(initFormHost(props.initialHost));
+
+// --- Templates ---
+const { saveTemplate } = useTemplates();
+const showSaveTemplate = ref(false);
+const templateName = ref('');
+
+function handleSaveTemplate() {
+  if (!templateName.value.trim()) return;
+  saveTemplate(host.value, templateName.value);
+  templateName.value = '';
+  showSaveTemplate.value = false;
+}
 
 const serverType = ref(host.value.fileServer ? 'fileServer' : '');
 
@@ -438,13 +451,35 @@ function removeHeader(index: number) {
       <button type="submit" class="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors">
         Save Host
       </button>
-      <button 
-        type="button" 
-        @click="emit('cancel')" 
+      <button
+        type="button"
+        @click="emit('cancel')"
         class="px-4 py-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg transition-colors"
       >
         Cancel
       </button>
+      <!-- Save as template -->
+      <div class="save-template-wrap">
+        <button
+          v-if="!showSaveTemplate"
+          type="button"
+          class="btn-link text-xs"
+          @click="showSaveTemplate = true; templateName = host.domain || ''"
+        >Save as template</button>
+        <div v-else class="save-template-row">
+          <input
+            v-model="templateName"
+            type="text"
+            placeholder="Template name"
+            class="save-template-input"
+            @keydown.enter.prevent="handleSaveTemplate"
+            @keydown.escape="showSaveTemplate = false"
+            autofocus
+          />
+          <button type="button" class="btn-template-save" @click="handleSaveTemplate">Save</button>
+          <button type="button" class="btn-link text-xs" @click="showSaveTemplate = false">Cancel</button>
+        </div>
+      </div>
     </div>
   </form>
 </template>
@@ -579,8 +614,47 @@ textarea {
 
 .form-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   justify-content: flex-end;
+  align-items: center;
+}
+
+.save-template-wrap {
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+}
+
+.save-template-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.save-template-input {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  width: 160px;
+}
+
+.btn-template-save {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-template-save:hover {
+  background: hsl(var(--primary) / 0.85);
 }
 
 button.btn-link {
