@@ -1,4 +1,5 @@
 import type { CaddyHost } from '../types/caddy';
+import { safeConfigString, sanitizeConfigValue, isValidHeaderName, isValidIpOrCidr, isValidOrigin } from './sanitize';
 
 function domainToServerName(domain: string): { listen: string; serverName: string | null } {
   // Port-only address like :8080
@@ -14,16 +15,16 @@ export function generateNginxConfig(hosts: CaddyHost[]): string {
 
 function generateServerBlock(host: CaddyHost): string {
   const lines: string[] = [];
-  const { listen, serverName } = domainToServerName(host.domain);
+  const { listen, serverName } = domainToServerName(sanitizeConfigValue(host.domain));
 
   if (host.presetName) {
-    lines.push(`# ${host.presetName}`);
+    lines.push(`# ${sanitizeConfigValue(host.presetName)}`);
   }
 
   // Rate limit zone must be declared in http {} block — emit a reminder comment
   if (host.security?.rateLimit?.enabled) {
     lines.push(`# NOTE: Add the following to your http {} block:`);
-    lines.push(`# limit_req_zone $binary_remote_addr zone=${sanitizeZoneName(host.domain)}:10m rate=${host.security.rateLimit.requests}r/${host.security.rateLimit.window};`);
+    lines.push(`# limit_req_zone $binary_remote_addr zone=${sanitizeZoneName(host.domain)}:10m rate=${host.security.rateLimit.requests}r/${sanitizeConfigValue(host.security.rateLimit.window)};`);
   }
 
   lines.push(`server {`);
@@ -46,10 +47,10 @@ function generateServerBlock(host: CaddyHost): string {
   if (hasTls) {
     lines.push(``);
     if (host.tls?.certFile && host.tls?.keyFile) {
-      lines.push(`    ssl_certificate ${host.tls.certFile};`);
-      lines.push(`    ssl_certificate_key ${host.tls.keyFile};`);
+      lines.push(`    ssl_certificate ${sanitizeConfigValue(host.tls.certFile)};`);
+      lines.push(`    ssl_certificate_key ${sanitizeConfigValue(host.tls.keyFile)};`);
     } else if (host.tls?.email && serverName) {
-      lines.push(`    # TLS managed by certbot (Let's Encrypt) for ${host.tls.email}`);
+      lines.push(`    # TLS managed by certbot (Let's Encrypt) for ${sanitizeConfigValue(host.tls.email)}`);
       lines.push(`    ssl_certificate /etc/letsencrypt/live/${serverName}/fullchain.pem;`);
       lines.push(`    ssl_certificate_key /etc/letsencrypt/live/${serverName}/privkey.pem;`);
     } else if (host.tls?.selfSigned) {
@@ -78,43 +79,51 @@ function generateServerBlock(host: CaddyHost): string {
   // Security headers
   if (host.security?.cspEnabled && host.security?.csp?.trim()) {
     lines.push(``);
-    lines.push(`    add_header Content-Security-Policy "${host.security.csp}";`);
+    lines.push(`    add_header Content-Security-Policy "${safeConfigString(host.security.csp)}";`);
   }
 
   // CORS headers
   if (host.cors?.enabled && host.cors.allowOrigins?.length) {
-    lines.push(``);
-    lines.push(`    add_header Access-Control-Allow-Origin "${host.cors.allowOrigins.join(' ')}";`);
-    if (host.cors.allowMethods?.length) {
-      lines.push(`    add_header Access-Control-Allow-Methods "${host.cors.allowMethods.join(',')}";`);
-    }
-    if (host.cors.allowHeaders?.length) {
-      lines.push(`    add_header Access-Control-Allow-Headers "${host.cors.allowHeaders.join(',')}";`);
+    const validOrigins = host.cors.allowOrigins.filter(isValidOrigin);
+    if (validOrigins.length) {
+      lines.push(``);
+      lines.push(`    add_header Access-Control-Allow-Origin "${validOrigins.map(safeConfigString).join(' ')}";`);
+      if (host.cors.allowMethods?.length) {
+        lines.push(`    add_header Access-Control-Allow-Methods "${host.cors.allowMethods.map(safeConfigString).join(',')}";`);
+      }
+      if (host.cors.allowHeaders?.length) {
+        lines.push(`    add_header Access-Control-Allow-Headers "${host.cors.allowHeaders.map(safeConfigString).join(',')}";`);
+      }
     }
   }
 
   // Cache control
   if (host.performance?.cacheControlEnabled && host.performance?.cacheControl?.trim()) {
     lines.push(``);
-    lines.push(`    add_header Cache-Control "${host.performance.cacheControl}";`);
+    lines.push(`    add_header Cache-Control "${safeConfigString(host.performance.cacheControl)}";`);
   }
 
-  // Custom headers
+  // Custom headers — validate name, escape value
   if (host.headers?.length) {
     lines.push(``);
     host.headers.forEach(({ name, value }) => {
-      lines.push(`    add_header ${name} "${value}";`);
+      const safeName = sanitizeConfigValue(name);
+      if (isValidHeaderName(safeName)) {
+        lines.push(`    add_header ${safeName} "${safeConfigString(value)}";`);
+      }
     });
   }
 
-  // IP filtering
+  // IP filtering — only emit validated IPs
   if (host.security?.ipFilter?.enabled) {
     const { allow, block } = host.security.ipFilter;
-    if (allow?.length || block?.length) {
+    const validAllow = (allow ?? []).filter(isValidIpOrCidr);
+    const validBlock = (block ?? []).filter(isValidIpOrCidr);
+    if (validAllow.length || validBlock.length) {
       lines.push(``);
-      allow?.forEach(ip => lines.push(`    allow ${ip};`));
-      block?.forEach(ip => lines.push(`    deny ${ip};`));
-      if (allow?.length) {
+      validAllow.forEach(ip => lines.push(`    allow ${ip};`));
+      validBlock.forEach(ip => lines.push(`    deny ${ip};`));
+      if (validAllow.length) {
         lines.push(`    deny all;`);
       }
     }
@@ -126,13 +135,16 @@ function generateServerBlock(host: CaddyHost): string {
     lines.push(`    limit_req zone=${sanitizeZoneName(host.domain)} burst=20 nodelay;`);
   }
 
-  // Forward auth
+  // Forward auth — validate header name
   if (host.security?.forwardAuth?.enabled && host.security.forwardAuth.url) {
     lines.push(``);
     lines.push(`    auth_request /auth-verify;`);
     if (host.security.forwardAuth.verifyHeader) {
-      lines.push(`    auth_request_set $auth_header $upstream_http_${toNginxVar(host.security.forwardAuth.verifyHeader)};`);
-      lines.push(`    proxy_set_header ${host.security.forwardAuth.verifyHeader} $auth_header;`);
+      const hdr = sanitizeConfigValue(host.security.forwardAuth.verifyHeader);
+      if (isValidHeaderName(hdr)) {
+        lines.push(`    auth_request_set $auth_header $upstream_http_${toNginxVar(hdr)};`);
+        lines.push(`    proxy_set_header ${hdr} $auth_header;`);
+      }
     }
   }
 
@@ -149,7 +161,7 @@ function generateServerBlock(host: CaddyHost): string {
   lines.push(`    location / {`);
 
   if (host.fileServer) {
-    lines.push(`        root ${host.fileServer.root};`);
+    lines.push(`        root ${sanitizeConfigValue(host.fileServer.root)};`);
     if (host.fileServer.php) {
       lines.push(`        index index.php index.html;`);
       lines.push(`        try_files $uri $uri/ /index.php?$query_string;`);
@@ -162,11 +174,12 @@ function generateServerBlock(host: CaddyHost): string {
     }
     if (host.fileServer.hide?.length) {
       host.fileServer.hide.forEach(pattern => {
-        lines.push(`        location ~ ${pattern} { deny all; }`);
+        const safe = sanitizeConfigValue(pattern);
+        if (safe) lines.push(`        location ~ ${safe} { deny all; }`);
       });
     }
   } else if (host.reverseProxy) {
-    lines.push(`        proxy_pass ${host.reverseProxy};`);
+    lines.push(`        proxy_pass ${sanitizeConfigValue(host.reverseProxy)};`);
     lines.push(`        proxy_http_version 1.1;`);
     lines.push(`        proxy_set_header Upgrade $http_upgrade;`);
     lines.push(`        proxy_set_header Connection "upgrade";`);
@@ -194,7 +207,7 @@ function generateServerBlock(host: CaddyHost): string {
     lines.push(``);
     lines.push(`    location = /auth-verify {`);
     lines.push(`        internal;`);
-    lines.push(`        proxy_pass ${host.security.forwardAuth.url};`);
+    lines.push(`        proxy_pass ${sanitizeConfigValue(host.security.forwardAuth.url)};`);
     lines.push(`        proxy_pass_request_body off;`);
     lines.push(`        proxy_set_header Content-Length "";`);
     lines.push(`        proxy_set_header X-Original-URI $request_uri;`);

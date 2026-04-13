@@ -4,6 +4,7 @@ import { X, Search, Globe, Github } from 'lucide-vue-next';
 import { presets } from '../presets';
 import type { PresetConfig } from '../types/caddy';
 import { nextTick } from 'vue';
+import DOMPurify from 'dompurify';
 
 function openLink(url: string, event: Event) {
   event.preventDefault();
@@ -118,7 +119,7 @@ function selectPreset(preset: PresetConfig) {
                   v-if="preset.logo"
                   class="w-8 h-8 [&_*]:fill-foreground dark:[&_*]:fill-white flex items-center justify-center overflow-hidden"
                   style="min-width: 32px;"
-                  v-html="preset.logo"
+                  v-html="DOMPurify.sanitize(preset.logo, { USE_PROFILES: { svg: true } })"
                 ></div>
                 <strong>{{ preset.name }}</strong>
               </div>

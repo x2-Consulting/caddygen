@@ -8,6 +8,7 @@ import type { CaddyHost, CaddyGlobalOptions } from '../types/caddy';
 import { validateHosts } from '../utils/validate';
 import { generateNginxConfig } from '../utils/nginxGenerator';
 import { generateCaddyConfig } from '../utils/caddyGenerator';
+import { isValidCaddyAdminUrl } from '../utils/sanitize';
 
 interface Props {
   hosts: CaddyHost[];
@@ -126,6 +127,11 @@ const apiMessage = ref('');
 watch(apiUrl, v => localStorage.setItem('caddyApiUrl', v));
 
 async function applyToCaddy() {
+  if (!isValidCaddyAdminUrl(apiUrl.value)) {
+    apiStatus.value = 'error';
+    apiMessage.value = 'Invalid admin URL. Only http(s)://localhost or 127.x.x.x addresses are allowed.';
+    return;
+  }
   apiStatus.value = 'loading';
   apiMessage.value = '';
 

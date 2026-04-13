@@ -9,6 +9,7 @@ export interface ValidationIssue {
 const CIDR_RE = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$|^([0-9a-fA-F:]+)(\/\d{1,3})?$/;
 const RATE_WINDOW_RE = /^\d+[smhd]$/;
 const PROXY_URL_RE = /^https?:\/\/.+/;
+const SENSITIVE_PATHS = ['/root', '/etc', '/proc', '/sys', '/dev', '/boot', '/run/secrets'];
 
 function isValidCidr(value: string): boolean {
   return CIDR_RE.test(value.trim());
@@ -48,6 +49,8 @@ export function validateHosts(hosts: CaddyHost[]): ValidationIssue[] {
     if (host.fileServer) {
       if (!host.fileServer.root?.trim()) {
         issues.push({ type: 'error', domain: d, message: 'File server root directory is empty.' });
+      } else if (SENSITIVE_PATHS.some(p => host.fileServer!.root === p || host.fileServer!.root.startsWith(p + '/'))) {
+        issues.push({ type: 'warning', domain: d, message: `File server root "${host.fileServer.root}" may expose sensitive system files.` });
       }
     }
 

@@ -9,8 +9,28 @@ import CaddyConfig from './components/CaddyConfig.vue';
 import ImportModal from './components/ImportModal.vue';
 import LZString from 'lz-string';
 import { strToU8, zip } from 'fflate';
+import DOMPurify from 'dompurify';
 import { generateCaddyConfig } from './utils/caddyGenerator';
 import { generateNginxConfig } from './utils/nginxGenerator';
+
+// ── Schema validation for imported configs ───────────────────────────────────
+
+function isValidHost(obj: unknown): obj is CaddyHost {
+  if (!obj || typeof obj !== 'object') return false;
+  const h = obj as Record<string, unknown>;
+  return typeof h.id === 'string' && typeof h.domain === 'string';
+}
+
+function isValidServer(obj: unknown): obj is CaddyServer {
+  if (!obj || typeof obj !== 'object') return false;
+  const s = obj as Record<string, unknown>;
+  return (
+    typeof s.id === 'string' &&
+    typeof s.name === 'string' &&
+    Array.isArray(s.hosts) &&
+    (s.hosts as unknown[]).every(isValidHost)
+  );
+}
 
 // ── Theme ────────────────────────────────────────────────────────────────────
 
@@ -194,15 +214,20 @@ onMounted(() => {
         const parsed = JSON.parse(decompressed);
         // Support both old format (CaddyHost[]) and new format (CaddyServer[])
         if (Array.isArray(parsed) && parsed.length > 0 && 'hosts' in parsed[0]) {
-          servers.value = parsed as CaddyServer[];
+          if (parsed.every(isValidServer)) {
+            servers.value = parsed as CaddyServer[];
+          }
         } else if (Array.isArray(parsed)) {
-          servers.value = [makeServer('Imported', parsed as CaddyHost[])];
+          const validHosts = (parsed as unknown[]).filter(isValidHost) as CaddyHost[];
+          if (validHosts.length) {
+            servers.value = [makeServer('Imported', validHosts)];
+          }
         }
         activeServerId.value = servers.value[0].id;
         persist();
       }
-    } catch {
-      // Ignore malformed config params
+    } catch (e) {
+      console.warn('Failed to load config from URL parameter:', e);
     }
     window.history.replaceState({}, '', window.location.pathname);
     return;
@@ -464,7 +489,7 @@ onMounted(() => {
               <template v-if="preset.name === host.presetName && preset.logo">
                 <div
                   class="absolute right-0 bottom-0 w-40 h-40 opacity-30 transform translate-x-10 translate-y-10 [&_*]:fill-white"
-                  v-html="preset.logo"
+                  v-html="DOMPurify.sanitize(preset.logo, { USE_PROFILES: { svg: true } })"
                   style="max-width: 160px; max-height: 160px;"
                 ></div>
               </template>
