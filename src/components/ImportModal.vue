@@ -17,51 +17,120 @@ const configContent = ref('');
 const configType = ref<'caddy' | 'nginx'>('caddy');
 
 // ---------------------------------------------------------------------------
-// Caddy parser (unchanged from original)
+// Caddy parser — improved with brace-depth splitting, global options skip,
+// multi-domain support, handle/route flattening, and richer directive extraction
 // ---------------------------------------------------------------------------
+
+/** Split a Caddyfile into top-level site blocks using a brace-depth counter. */
+function splitCaddyBlocks(content: string): Array<{ header: string; body: string[] }> {
+  const result: Array<{ header: string; body: string[] }> = [];
+  const lines = content.split('\n');
+  let depth = 0;
+  let header = '';
+  let bodyLines: string[] = [];
+  let inBlock = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+
+    if (!inBlock) {
+      // Opening: either "domain {" on one line or "domain" followed by "{" on next
+      if (line.endsWith('{')) {
+        header = line.slice(0, -1).trim();
+        inBlock = true;
+        depth = 1;
+        bodyLines = [];
+      } else if (line === '{') {
+        // standalone brace — global options block or continuation
+        inBlock = true;
+        depth = 1;
+        bodyLines = [];
+        // header stays as whatever was set by a previous non-brace line
+      } else {
+        // bare line before a block (header on its own line)
+        header = line;
+      }
+    } else {
+      // Count braces to track depth
+      for (const ch of line) {
+        if (ch === '{') depth++;
+        else if (ch === '}') depth--;
+      }
+      if (depth === 0) {
+        result.push({ header, body: bodyLines });
+        header = '';
+        bodyLines = [];
+        inBlock = false;
+      } else {
+        bodyLines.push(line);
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Flatten nested handle/route blocks: collect all directives regardless of depth,
+ * stripping the wrapper lines (handle, route, @matchers, lone braces).
+ */
+function flattenDirectives(lines: string[]): string[] {
+  const flat: string[] = [];
+  let depth = 0;
+  for (const line of lines) {
+    // Skip matcher definitions, handle/route headers, lone braces
+    if (/^@\w+/.test(line)) continue;
+    if (/^(handle|route)(\s|$)/.test(line) || /^handle_path\s/.test(line)) {
+      if (line.endsWith('{')) { depth++; continue; }
+    }
+    if (line === '{') { depth++; continue; }
+    if (line === '}') { depth--; continue; }
+    // Count inner braces on non-skipped lines
+    let opens = 0, closes = 0;
+    for (const ch of line) { if (ch === '{') opens++; else if (ch === '}') closes++; }
+    // If line itself opens a block (e.g. "header { ... }"), collect it but don't flatten further
+    flat.push(line);
+  }
+  return flat;
+}
+
 function parseCaddyfile(content: string): CaddyHost[] {
   const hosts: CaddyHost[] = [];
-  const blocks = content
-    .split(/\n(?=\S)/)
-    .reduce((acc: string[], line) => {
-      if (line.includes('{')) {
-        acc.push(line);
-      } else if (line.trim() && !line.trim().startsWith('#')) {
-        if (acc.length > 0) {
-          acc[acc.length - 1] += '\n' + line;
-        }
-      }
-      return acc;
-    }, [])
-    .map(block => block.trim())
-    .filter(block => {
-      const nonCommentLines = block.split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.startsWith('#'));
-      return nonCommentLines.length > 0;
-    });
+  const blocks = splitCaddyBlocks(content);
 
   for (const block of blocks) {
-    const lines = block.split('\n')
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith('#'));
-    if (lines.length === 0) continue;
+    const { header, body } = block;
 
-    const domainLine = lines[0].trim();
-    if (!domainLine || domainLine === '}') continue;
+    // Skip global options block (empty header = standalone `{` block)
+    if (!header) continue;
 
-    let domain = domainLine.split(' ')[0];
-    domain = domain === ':80' ? ':80' : domain;
+    // Skip snippet definitions: (snippet-name) { ... }
+    if (header.startsWith('(') && header.endsWith(')')) continue;
+
+    // Domains: split on whitespace (Caddy allows space-separated site addresses)
+    const addresses = header.split(/\s+/).filter(Boolean);
+    // Use first address as the canonical domain
+    const domain = addresses[0];
+    if (!domain || domain === '{') continue;
 
     const host: CaddyHost = { id: uuidv4(), domain, encode: false };
 
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line || line === '{' || line === '}') continue;
+    // Flatten directives — collapses handle/route blocks
+    const directives = flattenDirectives(body);
 
-      if (line.startsWith('root *')) {
-        const root = line.split('root *')[1].trim();
-        host.fileServer = { root, browse: false, php: false, frankenphp: false, hide: [] };
+    for (let i = 0; i < directives.length; i++) {
+      const line = directives[i];
+      if (!line) continue;
+
+      if (line.startsWith('root ')) {
+        // "root * /path" or "root /path"
+        const parts = line.split(/\s+/);
+        const root = parts[parts.length - 1];
+        if (!host.fileServer) {
+          host.fileServer = { root, browse: false, php: false, frankenphp: false, hide: [] };
+        } else {
+          host.fileServer.root = root;
+        }
       } else if (line.startsWith('file_server')) {
         if (!host.fileServer) {
           host.fileServer = { root: '/', browse: line.includes('browse'), php: false, frankenphp: false, hide: [] };
@@ -69,12 +138,76 @@ function parseCaddyfile(content: string): CaddyHost[] {
           host.fileServer.browse = line.includes('browse');
         }
       } else if (line.startsWith('reverse_proxy')) {
-        host.reverseProxy = line.split(' ').slice(1).join(' ');
+        host.reverseProxy = line.split(/\s+/).slice(1).join(' ');
       } else if (line.startsWith('encode')) {
         host.encode = true;
       } else if (line.startsWith('tls')) {
-        const email = line.split(' ')[1];
-        host.tls = { email: email === 'internal' ? undefined : email, selfSigned: email === 'internal' };
+        const parts = line.split(/\s+/);
+        const arg = parts[1];
+        if (!arg || arg === '{') {
+          // bare "tls" with a block — leave as empty tls
+          host.tls = {};
+        } else if (arg === 'internal') {
+          host.tls = { selfSigned: true };
+        } else if (arg.includes('@') || arg.includes('.')) {
+          // looks like an email
+          host.tls = { email: arg };
+        } else {
+          // Could be cert path — look for key on next arg
+          const certFile = arg;
+          const keyFile = parts[2] ?? '';
+          host.tls = { certFile, keyFile };
+        }
+      } else if (line.startsWith('basicauth')) {
+        // basicauth block — just mark it as present; credentials aren't importable
+        if (!host.basicAuth) host.basicAuth = [];
+        host.basicAuth.push({ username: '<imported>', password: '' });
+      } else if (line.startsWith('header ')) {
+        // "header <name> <value>" or "header >name value" (add/set)
+        const parts = line.split(/\s+/);
+        if (parts.length >= 3) {
+          let name = parts[1].replace(/^[+>!?]/, '');
+          const value = parts.slice(2).join(' ').replace(/^"(.*)"$/, '$1');
+          if (name && value && !/^\{/.test(value)) {
+            if (!host.headers) host.headers = [];
+            host.headers.push({ name, value });
+          }
+        }
+      } else if (line.startsWith('cors') || line.startsWith('@cors')) {
+        // minimal: just enable cors placeholder
+        if (!host.cors) {
+          host.cors = { enabled: true, allowOrigins: [], allowMethods: [], allowHeaders: [] };
+        }
+      } else if (line.startsWith('rate_limit') || line.startsWith('rate-limit')) {
+        if (!host.security) {
+          host.security = {
+            ipFilter: { enabled: false, allow: [], block: [] },
+            rateLimit: { enabled: true, requests: 100, window: '1m' },
+            cspEnabled: false, csp: '',
+            forwardAuth: { enabled: false, url: '', verifyHeader: '', verifyValue: '' },
+          };
+        } else {
+          host.security.rateLimit = { enabled: true, requests: 100, window: '1m' };
+        }
+      } else if (line.startsWith('forward_auth')) {
+        const urlPart = line.split(/\s+/)[1] ?? '';
+        if (!host.security) {
+          host.security = {
+            ipFilter: { enabled: false, allow: [], block: [] },
+            rateLimit: { enabled: false, requests: 100, window: '1m' },
+            cspEnabled: false, csp: '',
+            forwardAuth: { enabled: true, url: urlPart, verifyHeader: '', verifyValue: '' },
+          };
+        } else {
+          host.security.forwardAuth = { enabled: true, url: urlPart, verifyHeader: '', verifyValue: '' };
+        }
+      } else if (/^(php_fastcgi|frankenphp)/.test(line)) {
+        if (!host.fileServer) {
+          host.fileServer = { root: '/', browse: false, php: true, frankenphp: line.startsWith('frankenphp'), hide: [] };
+        } else {
+          host.fileServer.php = true;
+          if (line.startsWith('frankenphp')) host.fileServer.frankenphp = true;
+        }
       }
     }
 
