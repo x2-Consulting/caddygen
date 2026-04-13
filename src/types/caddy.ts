@@ -58,6 +58,12 @@ export interface CaddyHost {
   };
 }
 
+export interface CaddyServer {
+  id: string;
+  name: string;
+  hosts: CaddyHost[];
+}
+
 export interface PresetConfig {
   name: string;
   port: number;
