@@ -2,8 +2,9 @@
 import { computed, onMounted, watch, nextTick } from 'vue';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
-import { Download, Copy } from 'lucide-vue-next';
+import { Download, Copy, AlertTriangle, XCircle } from 'lucide-vue-next';
 import type { CaddyHost } from '../types/caddy';
+import { validateHosts } from '../utils/validate';
 
 interface Props {
   hosts: CaddyHost[];
@@ -232,21 +233,44 @@ function downloadConfig() {
 function copyConfig() {
   navigator.clipboard.writeText(caddyConfig.value);
 }
+
+const validationIssues = computed(() => validateHosts(props.hosts));
+const errors = computed(() => validationIssues.value.filter(i => i.type === 'error'));
+const warnings = computed(() => validationIssues.value.filter(i => i.type === 'warning'));
 </script>
 
 <template>
   <div class="config-viewer">
-    <div class="actions -mb-12 relative z-10 pr-4  pt-4" style="margin-bottom:-60px;">
+
+    <!-- Validation issues -->
+    <div v-if="validationIssues.length > 0" class="mb-4 space-y-2">
+      <div
+        v-for="(issue, i) in validationIssues"
+        :key="i"
+        :class="[
+          'flex items-start gap-2 rounded-lg px-4 py-3 text-sm',
+          issue.type === 'error'
+            ? 'bg-destructive/10 border border-destructive/30 text-destructive'
+            : 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400'
+        ]"
+      >
+        <XCircle v-if="issue.type === 'error'" class="w-4 h-4 mt-0.5 shrink-0" />
+        <AlertTriangle v-else class="w-4 h-4 mt-0.5 shrink-0" />
+        <span><strong>{{ issue.domain }}</strong> — {{ issue.message }}</span>
+      </div>
+    </div>
+
+    <div class="actions -mb-12 relative z-10 pr-4 pt-4" style="margin-bottom:-60px;">
       <div class="ml-auto flex gap-2">
-        <button 
-          @click="downloadConfig" 
+        <button
+          @click="downloadConfig"
           class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg p-2 transition-colors"
           title="Download Caddyfile"
         >
           <Download class="w-5 h-5" />
         </button>
-        <button 
-          @click="copyConfig" 
+        <button
+          @click="copyConfig"
           class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg p-2 transition-colors"
           title="Copy to Clipboard"
         >
