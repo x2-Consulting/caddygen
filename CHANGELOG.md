@@ -4,6 +4,61 @@
 
 ### Added
 
+#### Basic auth, custom headers, and full CORS UI
+- Basic Authentication section in HostForm: add/remove username + hashed-password pairs
+- Custom Response Headers section: add/remove arbitrary name/value header pairs
+- CORS: Allow Methods pill-checkboxes (GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD)
+- CORS: Allow Headers textarea alongside existing Allow Origins
+
+#### Nginx import parser
+- Import modal now has a Caddy / Nginx format toggle (pill buttons)
+- `parseNginxConfig()` extracts `server {}` blocks and maps:
+  - `server_name` → domain; `proxy_pass` → reverse proxy; `root` + `autoindex` → file server
+  - `ssl_certificate` / `ssl_certificate_key` → TLS (auto-detects Let's Encrypt managed paths)
+  - `gzip on` → encode; `add_header` CSP, Cache-Control, CORS, custom headers
+  - `allow` / `deny` → IP filter; `location ~ .php` → PHP enabled
+  - HTTP-only redirect blocks are skipped automatically
+- Upload button label and textarea placeholder update to match selected format
+- Modal title updated to "Import Config"
+
+#### Export all servers as zip
+- "Export All" button in header downloads every server's config as a zip archive
+- Each file named `<server-name>.Caddyfile` or `<server-name>.nginx.conf`
+- Uses `fflate` for in-browser zip creation (no server required)
+
+#### Global Caddy options block
+- Collapsible "Global Caddy Options" panel per server (Caddy servers only)
+- Configurable fields: ACME email, admin endpoint, custom ACME CA URL, debug toggle
+- Generates the top-level `{ }` block prepended to the Caddyfile when any option is set
+- Options are included in both the live preview and Export All zip
+
+#### Unit test suite (Vitest)
+- 51 tests across 3 files: `validate.test.ts`, `caddyGenerator.test.ts`, `nginxGenerator.test.ts`
+- Covers: domain validation, proxy/file-server checks, TLS modes, IP filter, rate limit,
+  forward auth, CORS, Caddy directive output, Nginx server block output, global block
+- Run with `npm test`
+
+### Changed
+
+#### Caddy generator extracted to shared utility
+- Inline Caddy config generation moved from `CaddyConfig.vue` into `src/utils/caddyGenerator.ts`
+- `generateCaddyConfig(hosts, globalOptions?)` now used by both CaddyConfig.vue and the Export All feature
+
+#### Mobile responsiveness improvements
+- Header stacks vertically on small screens; button labels hidden below `sm` breakpoint (icons remain)
+- Container padding reduced to `1rem` on mobile, scales up to `2rem` on large screens
+- Global options panel uses a single column on mobile, two columns on `sm+`
+- Caddy API panel input and button stack vertically on mobile
+- HostForm key-value rows (basic auth, headers) reflow to a stacked layout on narrow viewports
+
+#### TypeScript build errors resolved
+- `FormHost` interface + `initFormHost()` added to HostForm.vue — eliminates non-null assertion noise
+- `v-if` narrowing guards prevent TS18048 on `host.fileServer` template bindings
+- Removed unused `Globe` import from App.vue and unused `props` variable from ImportModal.vue
+- `vue-tsc` now passes cleanly as part of `npm run build`
+
+### Added
+
 #### Multi-server management
 - Server tab bar — manage multiple independent servers side by side
 - Each server has its own name, hosts, and server type (Caddy or Nginx)

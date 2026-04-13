@@ -10,21 +10,22 @@ CaddyGen is a user-friendly web interface for generating **Caddy** and **Nginx**
 - **Visual configuration builder** for Caddy and Nginx
 - **Reverse proxy** and **file server** setup
 - **SSL/TLS configuration** — Let's Encrypt, self-signed, or manual cert/key paths
-- **Import/Export** — paste or upload an existing Caddyfile to import hosts
+- **Import/Export** — paste or upload an existing Caddyfile or nginx.conf to import hosts
 - **Local storage** — all configurations saved locally in your browser
 
 ### Multi-server management
 - Manage multiple servers side by side with a tab bar
-- Each server is independent — its own hosts and server type
+- Each server is independent — its own hosts, server type, and global options
 - Rename servers (double-click the tab), add, and delete
 - Switch between **Caddy** and **Nginx** output per server
 
 ### Config generation
 - **88 application presets** across 12 categories (media, automation, monitoring, dev tools, auth, containers, and more)
 - Advanced **security options** — CSP, IP filtering, rate limiting, forward authentication
-- **CORS configuration**
+- **CORS configuration** — allow origins, methods (checkbox pills), and headers
 - **Performance optimizations** — gzip/zstandard/brotli compression, cache control
-- **Custom headers** and **basic auth**
+- **Custom response headers** — add arbitrary name/value pairs per host
+- **Basic authentication** — add username/hashed-password pairs per host
 - **PHP / FrankenPHP** support for file servers
 
 ### Nginx support
@@ -33,6 +34,17 @@ CaddyGen is a user-friendly web interface for generating **Caddy** and **Nginx**
 - SSL with certbot paths, self-signed comment, or manual cert/key
 - Automatic HTTP → HTTPS redirect block when TLS is enabled
 - Gzip compression; brotli as a commented module hint
+
+### Import
+- **Caddyfile import** — paste or upload; parses domains, proxy targets, file servers, TLS, and encode
+- **nginx.conf import** — paste or upload; parses `server {}` blocks including proxy_pass, SSL,
+  gzip, CSP, CORS, Cache-Control, IP allow/deny, PHP-FPM, and custom headers
+- Format toggle (Caddyfile / nginx.conf) in the import dialog
+
+### Global Caddy options
+- Per-server collapsible **Global Caddy Options** panel (Caddy servers only)
+- Configurable: ACME email, admin endpoint, custom ACME CA URL, debug toggle
+- Generates the top-level `{ }` block prepended to the Caddyfile
 
 ### Config validation
 - Real-time client-side validation — errors in red, warnings in yellow
@@ -46,6 +58,11 @@ CaddyGen is a user-friendly web interface for generating **Caddy** and **Nginx**
 - **Reload hint banner** — shows the correct reload command after copy/download/apply:
   - Caddy: `sudo systemctl reload caddy`
   - Nginx: `sudo nginx -s reload`
+
+### Export all
+- **Export All** button downloads every server's config as a single zip archive
+- Files named `<server-name>.Caddyfile` or `<server-name>.nginx.conf`
+- Includes global Caddy options blocks where configured
 
 ### Share via URL
 - **Share button** encodes all server configs into a compressed URL
@@ -62,9 +79,11 @@ CaddyGen is a user-friendly web interface for generating **Caddy** and **Nginx**
 1. Click **"Add New Host"** to configure a host.
 2. Optionally select an **application preset** to pre-fill the proxy target.
 3. Choose **reverse proxy** or **file server**, configure SSL, security, and performance options.
-4. View the generated config — errors and warnings appear above the output.
-5. **Copy**, **download**, or **Apply & Reload** directly to a running Caddy instance.
-6. Use **New Server** in the tab bar to manage multiple servers. Switch between **Caddy** and **Nginx** output with the toggle on the right of the tab bar.
+4. Use the **Advanced Options** section to set basic auth, custom headers, CORS, IP filtering, rate limiting, and more.
+5. View the generated config — errors and warnings appear above the output.
+6. **Copy**, **download**, or **Apply & Reload** directly to a running Caddy instance.
+7. Use **New Server** in the tab bar to manage multiple servers. Switch between **Caddy** and **Nginx** output with the toggle on the right of the tab bar.
+8. Use **Export All** to download every server's config as a zip.
 
 ---
 
@@ -97,7 +116,7 @@ docker run -p 8189:80 caddygen
 
 ## Development Setup
 
-**Stack:** Vue 3 · TypeScript · Vite · Tailwind CSS · Prism.js · Lucide Icons · lz-string
+**Stack:** Vue 3 · TypeScript · Vite · Tailwind CSS · Prism.js · Lucide Icons · lz-string · fflate
 
 ```bash
 git clone https://github.com/x2-Consulting/caddygen.git
@@ -107,6 +126,14 @@ npm run dev
 ```
 
 Open `http://localhost:5173`.
+
+### Running tests
+
+```bash
+npm test
+```
+
+51 unit tests covering the Caddy generator, Nginx generator, and config validator (Vitest).
 
 ---
 
