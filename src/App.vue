@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Globe, Github, ExternalLink, Settings, ChevronDown, ChevronUp, Upload, Sun, Moon, Share2, Check, X } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Github, ExternalLink, Settings, ChevronDown, ChevronUp, Upload, Sun, Moon, Share2, Check, X } from 'lucide-vue-next';
 import type { CaddyHost, CaddyServer } from './types/caddy';
 import { presets } from './presets';
 import { v4 as uuidv4 } from 'uuid';

@@ -102,9 +102,7 @@ const caddyConfig = computed(() => {
     if (host.performance?.cacheControlEnabled && host.performance?.cacheControl?.trim()) {
       lines.push(`    header Cache-Control "${host.performance.cacheControl}"`);
     }
-    if (host.fileServer?.hide?.length > 0) {
-      host.fileServer.hide.forEach(pattern => { lines.push('    file_server {'); lines.push(`        hide ${pattern}`); lines.push('    }'); });
-    }
+    host.fileServer?.hide?.forEach(pattern => { lines.push('    file_server {'); lines.push(`        hide ${pattern}`); lines.push('    }'); });
     if (host.tls?.email) { lines.push(`    tls ${host.tls.email}`); }
     else if (host.tls?.selfSigned) { lines.push('    tls internal'); }
     else if (host.tls?.certFile && host.tls?.keyFile) { lines.push(`    tls ${host.tls.certFile} ${host.tls.keyFile}`); }

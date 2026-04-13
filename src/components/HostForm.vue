@@ -5,6 +5,40 @@ import PresetSelect from './PresetSelect.vue';
 import type { PresetConfig } from '../types/caddy';
 import { v4 as uuidv4 } from 'uuid';
 
+// FormHost guarantees the always-initialised nested objects are non-optional,
+// which satisfies the Vue template type checker without needing non-null assertions everywhere.
+interface FormHost extends Omit<CaddyHost, 'tls' | 'security' | 'cors' | 'performance' | 'basicAuth' | 'headers'> {
+  tls: NonNullable<CaddyHost['tls']>;
+  security: NonNullable<CaddyHost['security']>;
+  cors: NonNullable<CaddyHost['cors']>;
+  performance: NonNullable<CaddyHost['performance']>;
+  basicAuth: NonNullable<CaddyHost['basicAuth']>;
+  headers: NonNullable<CaddyHost['headers']>;
+}
+
+function initFormHost(initial?: CaddyHost): FormHost {
+  return {
+    id: initial?.id ?? uuidv4(),
+    domain: initial?.domain ?? '',
+    presetName: initial?.presetName,
+    reverseProxy: initial?.reverseProxy,
+    fileServer: initial?.fileServer,
+    encode: initial?.encode ?? false,
+    tls: { email: '', selfSigned: false, certFile: '', keyFile: '', ...initial?.tls },
+    security: initial?.security ?? {
+      ipFilter: { enabled: false, allow: [], block: [] },
+      rateLimit: { enabled: false, requests: 100, window: '1m' },
+      cspEnabled: false,
+      csp: '',
+      forwardAuth: { enabled: false, url: '', verifyHeader: '', verifyValue: '' }
+    },
+    cors: { enabled: false, allowOrigins: [], allowMethods: [], allowHeaders: [], ...initial?.cors },
+    performance: { brotli: false, cacheControlEnabled: false, cacheControl: '', ...initial?.performance },
+    basicAuth: initial?.basicAuth ?? [],
+    headers: initial?.headers ?? [],
+  };
+}
+
 const props = defineProps<{
   initialHost?: CaddyHost;
   serverType?: 'caddy' | 'nginx';
@@ -17,55 +51,7 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
-const host = ref<CaddyHost>(props.initialHost || {
-  id: uuidv4(),
-  domain: '',
-  fileServer: {
-    root: '',
-    browse: false,
-    php: false,
-    frankenphp: false,
-    hide: []
-  },
-  encode: false,
-  tls: {
-    email: '',
-    selfSigned: false,
-    certFile: '',
-    keyFile: ''
-  },
-  security: {
-    ipFilter: {
-      enabled: false,
-      allow: [],
-      block: []
-    },
-    rateLimit: {
-      enabled: false,
-      requests: 100,
-      window: '1m'
-    },
-    cspEnabled: false,
-    csp: '',
-    forwardAuth: {
-      enabled: false,
-      url: '',
-      verifyHeader: '',
-      verifyValue: ''
-    }
-  },
-  cors: {
-    enabled: false,
-    allowOrigins: [],
-    allowMethods: [],
-    allowHeaders: []
-  },
-  performance: {
-    brotli: false,
-    cacheControlEnabled: false,
-    cacheControl: ''
-  }
-});
+const host = ref<FormHost>(initFormHost(props.initialHost));
 
 const serverType = ref(host.value.fileServer ? 'fileServer' : '');
 
@@ -90,8 +76,8 @@ function handleServerTypeChange(event: Event) {
 const showAdvanced = ref(false);
 
 const tlsHasEmailOrSelfSigned = computed(() => {
-  if(host.value.tls.email && host.value.tls.email?.trim() !== '') return true;
-  if(host.value.tls.selfSigned) return true;
+  if (host.value.tls.email?.trim()) return true;
+  if (host.value.tls.selfSigned) return true;
   return false;
 });
 
@@ -104,6 +90,12 @@ function applyPreset(preset: PresetConfig) {
   host.value.presetName = preset.name;
   host.value.fileServer = undefined;
   serverType.value = '';
+}
+
+function setFileServerHide(e: Event) {
+  if (host.value.fileServer) {
+    host.value.fileServer.hide = (e.target as HTMLTextAreaElement).value.split('\n').filter(Boolean);
+  }
 }
 </script>
 
@@ -136,7 +128,7 @@ function applyPreset(preset: PresetConfig) {
           </select>
         </div>
 
-        <template v-if="serverType === 'fileServer'">
+        <template v-if="serverType === 'fileServer' && host.fileServer">
           <div class="form-group">
             <label>Root Directory:</label>
             <input v-model="host.fileServer.root" placeholder="/var/www/html" />
@@ -362,14 +354,14 @@ function applyPreset(preset: PresetConfig) {
           </div>
 
           <!-- File Server Hide Patterns -->
-          <template v-if="serverType === 'fileServer'">
+          <template v-if="serverType === 'fileServer' && host.fileServer">
             <div class="advanced-section">
               <h3 class="text-lg font-semibold mb-4">Hidden Files</h3>
               <div class="form-group">
                 <label>Hide Patterns (one per line):</label>
                 <textarea
                   :value="host.fileServer.hide.join('\n')"
-                  @input="e => host.fileServer.hide = (e.target as HTMLTextAreaElement).value.split('\n').filter(Boolean)"
+                  @input="setFileServerHide"
                   placeholder=".git/*
 .env
 *.log"

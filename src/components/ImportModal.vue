@@ -4,7 +4,7 @@ import { X, Upload } from 'lucide-vue-next';
 import type { CaddyHost } from '../types/caddy';
 import { v4 as uuidv4 } from 'uuid';
 
-const props = defineProps<{
+defineProps<{
   show: boolean;
 }>();
 
