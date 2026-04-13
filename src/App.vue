@@ -15,6 +15,7 @@ import { strToU8, zip } from 'fflate';
 import DOMPurify from 'dompurify';
 import { generateCaddyConfig } from './utils/caddyGenerator';
 import { generateNginxConfig } from './utils/nginxGenerator';
+import { generateTraefikConfig } from './utils/traefikGenerator';
 
 // ── Schema validation for imported configs ───────────────────────────────────
 
@@ -181,10 +182,19 @@ function exportAllServers() {
   const files: Record<string, Uint8Array> = {};
   for (const server of servers.value) {
     if (!server.hosts.length) continue;
-    const isNginx = server.serverType === 'nginx';
-    const content = isNginx ? generateNginxConfig(server.hosts) : generateCaddyConfig(server.hosts, server.globalOptions);
     const safeName = server.name.replace(/[^a-z0-9_-]/gi, '_');
-    const filename = isNginx ? `${safeName}.nginx.conf` : `${safeName}.Caddyfile`;
+    let content: string;
+    let filename: string;
+    if (server.serverType === 'nginx') {
+      content = generateNginxConfig(server.hosts);
+      filename = `${safeName}.nginx.conf`;
+    } else if (server.serverType === 'traefik') {
+      content = generateTraefikConfig(server.hosts);
+      filename = `${safeName}.traefik-dynamic.yml`;
+    } else {
+      content = generateCaddyConfig(server.hosts, server.globalOptions);
+      filename = `${safeName}.Caddyfile`;
+    }
     files[filename] = strToU8(content);
   }
   if (!Object.keys(files).length) return;
@@ -417,6 +427,15 @@ onMounted(() => {
                 : 'text-muted-foreground hover:text-foreground'
             ]"
           >Nginx</button>
+          <button
+            @click="activeServer.serverType = 'traefik'; persist()"
+            :class="[
+              'px-3 py-1 text-xs font-medium rounded transition-colors',
+              activeServer.serverType === 'traefik'
+                ? 'bg-primary text-white'
+                : 'text-muted-foreground hover:text-foreground'
+            ]"
+          >Traefik</button>
         </div>
       </div>
 

@@ -68,7 +68,7 @@ export interface CaddyGlobalOptions {
 export interface CaddyServer {
   id: string;
   name: string;
-  serverType?: 'caddy' | 'nginx';
+  serverType?: 'caddy' | 'nginx' | 'traefik';
   hosts: CaddyHost[];
   globalOptions?: CaddyGlobalOptions;
 }

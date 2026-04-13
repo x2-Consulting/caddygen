@@ -42,7 +42,7 @@ function initFormHost(initial?: CaddyHost): FormHost {
 
 const props = defineProps<{
   initialHost?: CaddyHost;
-  serverType?: 'caddy' | 'nginx';
+  serverType?: 'caddy' | 'nginx' | 'traefik';
 }>();
 
 const isNginx = computed(() => props.serverType === 'nginx');

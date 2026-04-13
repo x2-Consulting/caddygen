@@ -3,24 +3,35 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-nginx';
+import 'prismjs/components/prism-yaml';
 import { Download, Copy, AlertTriangle, XCircle, Check, RefreshCw, Settings2, X, Loader2 } from 'lucide-vue-next';
 import type { CaddyHost, CaddyGlobalOptions } from '../types/caddy';
 import { validateHosts } from '../utils/validate';
 import { generateNginxConfig } from '../utils/nginxGenerator';
 import { generateCaddyConfig } from '../utils/caddyGenerator';
+import { generateTraefikConfig } from '../utils/traefikGenerator';
 import { isValidCaddyAdminUrl } from '../utils/sanitize';
 
 interface Props {
   hosts: CaddyHost[];
-  serverType?: 'caddy' | 'nginx';
+  serverType?: 'caddy' | 'nginx' | 'traefik';
   globalOptions?: CaddyGlobalOptions;
 }
 
 const props = defineProps<Props>();
 
 const isNginx = computed(() => props.serverType === 'nginx');
-const language = computed(() => isNginx.value ? 'nginx' : 'caddy');
-const filename = computed(() => isNginx.value ? 'nginx.conf' : 'Caddyfile');
+const isTraefik = computed(() => props.serverType === 'traefik');
+const language = computed(() => {
+  if (isNginx.value) return 'nginx';
+  if (isTraefik.value) return 'yaml';
+  return 'caddy';
+});
+const filename = computed(() => {
+  if (isNginx.value) return 'nginx.conf';
+  if (isTraefik.value) return 'traefik-dynamic.yml';
+  return 'Caddyfile';
+});
 
 // ── Prism setup ───────────────────────────────────────────────────────────────
 
@@ -60,9 +71,11 @@ watch(() => [props.hosts, props.serverType], () => {
 
 // ── Output ────────────────────────────────────────────────────────────────────
 
-const configOutput = computed(() =>
-  isNginx.value ? generateNginxConfig(props.hosts) : generateCaddyConfig(props.hosts, props.globalOptions)
-);
+const configOutput = computed(() => {
+  if (isNginx.value) return generateNginxConfig(props.hosts);
+  if (isTraefik.value) return generateTraefikConfig(props.hosts);
+  return generateCaddyConfig(props.hosts, props.globalOptions);
+});
 
 // ── Pending changes tracking ──────────────────────────────────────────────────
 
@@ -83,6 +96,9 @@ const showReloadHint = ref(false);
 const reloadCommand = computed(() => {
   if (isNginx.value) {
     return { primary: 'sudo nginx -s reload', alt: 'sudo systemctl reload nginx' };
+  }
+  if (isTraefik.value) {
+    return { primary: 'cp traefik-dynamic.yml /etc/traefik/dynamic/', alt: 'docker cp traefik-dynamic.yml traefik:/etc/traefik/dynamic/' };
   }
   return { primary: 'sudo systemctl reload caddy', alt: 'caddy reload --config /etc/caddy/Caddyfile' };
 });
@@ -215,7 +231,7 @@ const validationIssues = computed(() => validateHosts(props.hosts));
 
         <!-- Caddy API apply button (Caddy only) -->
         <button
-          v-if="!isNginx"
+          v-if="!isNginx && !isTraefik"
           @click="showApiPanel = !showApiPanel"
           :class="[
             'inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
@@ -250,7 +266,7 @@ const validationIssues = computed(() => validateHosts(props.hosts));
     <pre class="rounded-lg p-4 pt-16 bg-slate-900"><code :class="`language-${language}`">{{ configOutput }}</code></pre>
 
     <!-- Caddy Admin API panel -->
-    <div v-if="showApiPanel && !isNginx" class="mt-3 rounded-lg border border-border/50 bg-card p-4 space-y-3">
+    <div v-if="showApiPanel && !isNginx && !isTraefik" class="mt-3 rounded-lg border border-border/50 bg-card p-4 space-y-3">
       <div class="flex items-center justify-between">
         <p class="text-sm font-medium">Apply via Caddy Admin API</p>
         <button @click="showApiPanel = false" class="text-muted-foreground hover:text-foreground">
