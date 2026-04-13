@@ -233,20 +233,20 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen flex flex-col bg-background">
-    <div class="container py-8 flex-1">
+    <div class="container py-4 sm:py-8 flex-1">
 
       <!-- Header -->
-      <div class="flex items-start justify-between mb-8">
-        <h1 class="flex items-center gap-3 text-4xl font-bold text-foreground">
-          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-            <Settings class="w-7 h-7 text-white" />
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
+        <h1 class="flex items-center gap-3 text-3xl sm:text-4xl font-bold text-foreground">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
+            <Settings class="w-6 h-6 sm:w-7 sm:h-7 text-white" />
           </div>
           <div class="flex flex-col">
             <span>CaddyGen</span>
-            <span class="text-lg font-normal text-muted-foreground">Caddy Config Generator</span>
+            <span class="text-base sm:text-lg font-normal text-muted-foreground">Caddy &amp; Nginx Config Generator</span>
           </div>
         </h1>
-        <div class="flex items-center gap-2 pt-1">
+        <div class="flex items-center gap-2 sm:pt-1 flex-wrap">
           <button
             @click="toggleDark"
             class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors"
@@ -257,27 +257,28 @@ onMounted(() => {
           </button>
           <button
             @click="shareConfig"
-            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-4 py-2 transition-colors"
+            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-3 py-2 transition-colors"
             title="Copy shareable link to clipboard"
           >
             <Check v-if="shareCopied" class="w-4 h-4 text-green-500" />
             <Share2 v-else class="w-4 h-4" />
-            {{ shareCopied ? 'Copied!' : 'Share' }}
+            <span class="hidden sm:inline">{{ shareCopied ? 'Copied!' : 'Share' }}</span>
           </button>
           <button
             @click="exportAllServers"
-            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-4 py-2 transition-colors"
+            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-3 py-2 transition-colors"
             title="Download all server configs as a zip"
           >
             <Download class="w-4 h-4" />
-            Export All
+            <span class="hidden sm:inline">Export All</span>
           </button>
           <button
             @click="showImportModal = true"
-            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-4 py-2 transition-colors"
+            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-3 py-2 transition-colors"
+            title="Import config"
           >
             <Upload class="w-4 h-4" />
-            Import
+            <span class="hidden sm:inline">Import</span>
           </button>
         </div>
       </div>
@@ -306,7 +307,7 @@ onMounted(() => {
       </div>
 
       <!-- Server tabs -->
-      <div class="flex items-center gap-1 mb-6 flex-wrap border-b border-border/50 pb-3">
+      <div class="flex items-center gap-1 mb-6 flex-wrap border-b border-border/50 pb-3 gap-y-2">
         <div
           v-for="server in servers"
           :key="server.id"
@@ -394,7 +395,7 @@ onMounted(() => {
           <component :is="showGlobalOptions ? ChevronUp : ChevronDown" class="w-3 h-3" />
         </button>
         <div v-if="showGlobalOptions" class="mt-3 p-4 rounded-lg border border-border/50 bg-card space-y-3 max-w-xl">
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs text-muted-foreground mb-1">ACME Email</label>
               <input

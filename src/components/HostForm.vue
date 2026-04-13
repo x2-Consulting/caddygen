@@ -452,7 +452,14 @@ function removeHeader(index: number) {
 <style scoped>
 .host-form {
   max-width: 600px;
-  margin: 2rem auto;
+  margin: 1rem auto;
+}
+
+@media (max-width: 640px) {
+  .host-form {
+    margin: 0.5rem 0;
+    border-radius: 0.5rem;
+  }
 }
 
 .form-group {
@@ -602,6 +609,24 @@ button.btn-link:hover {
   gap: 0.5rem;
   margin-bottom: 0.5rem;
   align-items: center;
+}
+
+@media (max-width: 480px) {
+  .key-value-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+  }
+  .key-value-row input:first-of-type {
+    grid-column: 1;
+  }
+  .key-value-row input:last-of-type {
+    grid-column: 1;
+  }
+  .key-value-row .btn-remove {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    align-self: center;
+  }
 }
 
 .key-value-row input {

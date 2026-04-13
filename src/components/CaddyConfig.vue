@@ -255,7 +255,7 @@ const validationIssues = computed(() => validateHosts(props.hosts));
         Pushes the config directly to a running Caddy instance with zero downtime.
         The current running config will be downloaded as a backup first.
       </p>
-      <div class="flex gap-2">
+      <div class="flex flex-col sm:flex-row gap-2">
         <input
           v-model="apiUrl"
           class="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:border-primary"
@@ -264,7 +264,7 @@ const validationIssues = computed(() => validateHosts(props.hosts));
         <button
           @click="applyToCaddy"
           :disabled="apiStatus === 'loading'"
-          class="inline-flex items-center gap-2 px-4 py-1.5 text-sm bg-primary hover:bg-primary/90 disabled:opacity-60 text-white rounded-lg transition-colors"
+          class="inline-flex items-center justify-center gap-2 px-4 py-1.5 text-sm bg-primary hover:bg-primary/90 disabled:opacity-60 text-white rounded-lg transition-colors"
         >
           <Loader2 v-if="apiStatus === 'loading'" class="w-4 h-4 animate-spin" />
           <RefreshCw v-else class="w-4 h-4" />
