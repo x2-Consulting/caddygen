@@ -4,18 +4,21 @@ import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-nginx';
 import 'prismjs/components/prism-yaml';
-import { Download, Copy, AlertTriangle, XCircle, Check, RefreshCw, Settings2, X, Loader2 } from 'lucide-vue-next';
+import { Download, Copy, AlertTriangle, XCircle, Check, RefreshCw, Settings2, X, Loader2, History, Trash2 } from 'lucide-vue-next';
 import type { CaddyHost, CaddyGlobalOptions } from '../types/caddy';
 import { validateHosts } from '../utils/validate';
 import { generateNginxConfig } from '../utils/nginxGenerator';
 import { generateCaddyConfig } from '../utils/caddyGenerator';
 import { generateTraefikConfig } from '../utils/traefikGenerator';
 import { isValidCaddyAdminUrl } from '../utils/sanitize';
+import { useConfigHistory } from '../composables/useConfigHistory';
 
 interface Props {
   hosts: CaddyHost[];
   serverType?: 'caddy' | 'nginx' | 'traefik';
   globalOptions?: CaddyGlobalOptions;
+  serverId?: string;
+  serverName?: string;
 }
 
 const props = defineProps<Props>();
@@ -77,6 +80,29 @@ const configOutput = computed(() => {
   return generateCaddyConfig(props.hosts, props.globalOptions);
 });
 
+// ── History ───────────────────────────────────────────────────────────────────
+
+const { addSnapshot, getServerHistory, deleteSnapshot, clearServerHistory } = useConfigHistory();
+
+const showHistory = ref(false);
+const serverHistory = computed(() =>
+  props.serverId ? getServerHistory(props.serverId) : []
+);
+
+function formatHistoryDate(ts: number): string {
+  const d = new Date(ts);
+  return d.toLocaleString(undefined, {
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function restoreSnapshot(content: string) {
+  // Trigger a download so user can save the historical config
+  triggerDownload(content, filename.value);
+  showHistory.value = false;
+}
+
 // ── Pending changes tracking ──────────────────────────────────────────────────
 
 const lastActionedConfig = ref('');
@@ -87,6 +113,15 @@ const hasPendingChanges = computed(() =>
 function markActioned() {
   lastActionedConfig.value = configOutput.value;
   showReloadHint.value = true;
+  // Record history snapshot on every intentional action
+  if (props.serverId) {
+    addSnapshot(
+      props.serverId,
+      props.serverName ?? 'Server',
+      (props.serverType ?? 'caddy') as 'caddy' | 'nginx' | 'traefik',
+      configOutput.value,
+    );
+  }
 }
 
 // ── Reload hint ───────────────────────────────────────────────────────────────
@@ -229,6 +264,19 @@ const validationIssues = computed(() => validateHosts(props.hosts));
 
         <span class="text-xs text-muted-foreground font-mono">{{ filename }}</span>
 
+        <!-- History button -->
+        <button
+          v-if="serverHistory.length > 0"
+          @click="showHistory = !showHistory"
+          :class="[
+            'inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
+            showHistory ? 'bg-primary text-white' : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+          ]"
+          :title="`Config history (${serverHistory.length})`"
+        >
+          <History class="w-4 h-4" />
+        </button>
+
         <!-- Caddy API apply button (Caddy only) -->
         <button
           v-if="!isNginx && !isTraefik"
@@ -325,6 +373,57 @@ const validationIssues = computed(() => validateHosts(props.hosts));
       <button @click="showReloadHint = false" class="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground">
         <X class="w-4 h-4" />
       </button>
+    </div>
+
+    <!-- Config history panel -->
+    <div v-if="showHistory" class="mt-3 rounded-lg border border-border/50 bg-card overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-border/50">
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <History class="w-4 h-4 text-primary" />
+          Config history
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            v-if="serverHistory.length > 0 && props.serverId"
+            @click="clearServerHistory(props.serverId!)"
+            class="text-xs text-muted-foreground hover:text-destructive transition-colors"
+          >Clear all</button>
+          <button @click="showHistory = false" class="text-muted-foreground hover:text-foreground">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      <div class="max-h-64 overflow-y-auto divide-y divide-border/30">
+        <div
+          v-for="snapshot in serverHistory"
+          :key="snapshot.id"
+          class="flex items-center justify-between px-4 py-2.5 hover:bg-accent/30 transition-colors"
+        >
+          <div class="min-w-0">
+            <p class="text-xs text-muted-foreground">{{ formatHistoryDate(snapshot.savedAt) }}</p>
+            <p class="text-xs font-mono text-foreground/60 truncate max-w-xs mt-0.5">
+              {{ snapshot.content.slice(0, 80).replace(/\n/g, ' ') }}…
+            </p>
+          </div>
+          <div class="flex items-center gap-1 ml-3 flex-shrink-0">
+            <button
+              @click="restoreSnapshot(snapshot.content)"
+              class="inline-flex items-center gap-1 text-xs px-2 py-1 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded transition-colors"
+              title="Download this snapshot"
+            >
+              <Download class="w-3 h-3" />
+              Download
+            </button>
+            <button
+              @click="deleteSnapshot(snapshot.id)"
+              class="p-1 text-muted-foreground hover:text-destructive transition-colors"
+              title="Delete entry"
+            >
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
   </div>

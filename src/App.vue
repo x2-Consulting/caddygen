@@ -622,6 +622,8 @@ onMounted(() => {
           :hosts="activeHosts"
           :server-type="activeServer.serverType"
           :global-options="activeServer.globalOptions"
+          :server-id="activeServer.id"
+          :server-name="activeServer.name"
           v-if="activeHosts.length > 0"
         />
       </div>
