@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-nginx';
-import { Download, Copy, AlertTriangle, XCircle } from 'lucide-vue-next';
+import { Download, Copy, AlertTriangle, XCircle, Check, RefreshCw, Settings2, X, Loader2 } from 'lucide-vue-next';
 import type { CaddyHost } from '../types/caddy';
 import { validateHosts } from '../utils/validate';
 import { generateNginxConfig } from '../utils/nginxGenerator';
@@ -18,6 +18,8 @@ const props = defineProps<Props>();
 const isNginx = computed(() => props.serverType === 'nginx');
 const language = computed(() => isNginx.value ? 'nginx' : 'caddy');
 const filename = computed(() => isNginx.value ? 'nginx.conf' : 'Caddyfile');
+
+// ── Prism setup ───────────────────────────────────────────────────────────────
 
 onMounted(() => {
   if (!Prism.languages.caddy) {
@@ -56,109 +58,65 @@ watch(() => [props.hosts, props.serverType], () => {
 // ── Caddy generator ───────────────────────────────────────────────────────────
 
 const caddyConfig = computed(() => {
-  return props.hosts
-    .map((host) => {
-      const lines: string[] = [];
-
-      if (host.presetName) lines.push(`# ${host.presetName}`);
-
-      if (host.fileServer?.frankenphp) {
-        lines.push('{');
-        lines.push('    frankenphp');
-        lines.push('}');
+  return props.hosts.map((host) => {
+    const lines: string[] = [];
+    if (host.presetName) lines.push(`# ${host.presetName}`);
+    if (host.fileServer?.frankenphp) { lines.push('{'); lines.push('    frankenphp'); lines.push('}'); }
+    lines.push(`${host.domain} {`);
+    if (host.fileServer) {
+      lines.push(`    root * ${host.fileServer.root}`);
+      if (host.fileServer.frankenphp) { lines.push('    php_server'); }
+      else if (host.fileServer.php) { lines.push('    php_fastcgi unix//run/php/php-fpm.sock'); }
+      lines.push(`    file_server${host.fileServer.browse ? ' browse' : ''}`);
+    } else if (host.reverseProxy) {
+      lines.push(`    reverse_proxy ${host.reverseProxy}`);
+    }
+    if (host.performance?.brotli) { lines.push('    encode zstd br gzip'); }
+    else if (host.encode) { lines.push('    encode'); }
+    if (host.security?.cspEnabled && host.security?.csp?.trim()) lines.push(`    header Content-Security-Policy "${host.security.csp}"`);
+    if (host.security?.ipFilter?.enabled && (host.security?.ipFilter?.allow?.length || host.security?.ipFilter?.block?.length)) {
+      lines.push('    @blocked {');
+      if (host.security.ipFilter.block?.length) lines.push(`        remote_ip ${host.security.ipFilter.block.join(' ')}`);
+      if (host.security.ipFilter.allow?.length) lines.push(`        not remote_ip ${host.security.ipFilter.allow.join(' ')}`);
+      lines.push('    }');
+      lines.push('    respond @blocked 403');
+    }
+    if (host.security?.forwardAuth?.enabled && host.security.forwardAuth.url) {
+      lines.push('    forward_auth * {');
+      lines.push(`        uri ${host.security.forwardAuth.url}`);
+      if (host.security.forwardAuth.verifyHeader && host.security.forwardAuth.verifyValue) {
+        lines.push('        copy_headers {');
+        lines.push(`            ${host.security.forwardAuth.verifyHeader} ${host.security.forwardAuth.verifyValue}`);
+        lines.push('        }');
       }
-
-      lines.push(`${host.domain} {`);
-
-      if (host.fileServer) {
-        lines.push(`    root * ${host.fileServer.root}`);
-        if (host.fileServer.frankenphp) {
-          lines.push('    php_server');
-        } else if (host.fileServer.php) {
-          lines.push('    php_fastcgi unix//run/php/php-fpm.sock');
-        }
-        lines.push(`    file_server${host.fileServer.browse ? ' browse' : ''}`);
-      } else if (host.reverseProxy) {
-        lines.push(`    reverse_proxy ${host.reverseProxy}`);
-      }
-
-      if (host.performance?.brotli) {
-        lines.push('    encode zstd br gzip');
-      } else if (host.encode) {
-        lines.push('    encode');
-      }
-
-      if (host.security?.cspEnabled && host.security?.csp?.trim()) {
-        lines.push(`    header Content-Security-Policy "${host.security.csp}"`);
-      }
-
-      if (host.security?.ipFilter?.enabled && (host.security?.ipFilter?.allow?.length || host.security?.ipFilter?.block?.length)) {
-        lines.push('    @blocked {');
-        if (host.security.ipFilter.block?.length) lines.push(`        remote_ip ${host.security.ipFilter.block.join(' ')}`);
-        if (host.security.ipFilter.allow?.length) lines.push(`        not remote_ip ${host.security.ipFilter.allow.join(' ')}`);
-        lines.push('    }');
-        lines.push('    respond @blocked 403');
-      }
-
-      if (host.security?.forwardAuth?.enabled && host.security.forwardAuth.url) {
-        lines.push('    forward_auth * {');
-        lines.push(`        uri ${host.security.forwardAuth.url}`);
-        if (host.security.forwardAuth.verifyHeader && host.security.forwardAuth.verifyValue) {
-          lines.push('        copy_headers {');
-          lines.push(`            ${host.security.forwardAuth.verifyHeader} ${host.security.forwardAuth.verifyValue}`);
-          lines.push('        }');
-        }
-        lines.push('    }');
-      }
-
-      if (host.security?.rateLimit?.enabled && host.security.rateLimit?.requests && host.security.rateLimit.window) {
-        lines.push(`    rate_limit ${host.security.rateLimit.requests} ${host.security.rateLimit.window}`);
-      }
-
-      if (host.cors?.enabled && host.cors.allowOrigins?.length) {
-        lines.push(`    header Access-Control-Allow-Origin "${host.cors.allowOrigins.join(' ')}"`);
-        if (host.cors.allowMethods?.length) lines.push(`    header Access-Control-Allow-Methods "${host.cors.allowMethods.join(',')}"`);
-        if (host.cors.allowHeaders?.length) lines.push(`    header Access-Control-Allow-Headers "${host.cors.allowHeaders.join(',')}"`);
-      }
-
-      if (host.performance?.cacheControlEnabled && host.performance?.cacheControl?.trim()) {
-        lines.push(`    header Cache-Control "${host.performance.cacheControl}"`);
-      }
-
-      if (host.fileServer?.hide?.length > 0) {
-        host.fileServer.hide.forEach(pattern => {
-          lines.push('    file_server {');
-          lines.push(`        hide ${pattern}`);
-          lines.push('    }');
-        });
-      }
-
-      if (host.tls?.email) {
-        lines.push(`    tls ${host.tls.email}`);
-      } else if (host.tls?.selfSigned) {
-        lines.push('    tls internal');
-      } else if (host.tls?.certFile && host.tls?.keyFile) {
-        lines.push(`    tls ${host.tls.certFile} ${host.tls.keyFile}`);
-      }
-
-      if (host.basicAuth?.length) {
-        host.basicAuth.forEach(({ username, password }) => {
-          lines.push(`    basicauth * {`);
-          lines.push(`        ${username} ${password}`);
-          lines.push('    }');
-        });
-      }
-
-      if (host.headers?.length) {
-        host.headers.forEach(({ name, value }) => {
-          lines.push(`    header ${name} "${value}"`);
-        });
-      }
-
-      lines.push('}');
-      return lines.join('\n');
-    })
-    .join('\n\n');
+      lines.push('    }');
+    }
+    if (host.security?.rateLimit?.enabled && host.security.rateLimit?.requests && host.security.rateLimit.window) {
+      lines.push(`    rate_limit ${host.security.rateLimit.requests} ${host.security.rateLimit.window}`);
+    }
+    if (host.cors?.enabled && host.cors.allowOrigins?.length) {
+      lines.push(`    header Access-Control-Allow-Origin "${host.cors.allowOrigins.join(' ')}"`);
+      if (host.cors.allowMethods?.length) lines.push(`    header Access-Control-Allow-Methods "${host.cors.allowMethods.join(',')}"`);
+      if (host.cors.allowHeaders?.length) lines.push(`    header Access-Control-Allow-Headers "${host.cors.allowHeaders.join(',')}"`);
+    }
+    if (host.performance?.cacheControlEnabled && host.performance?.cacheControl?.trim()) {
+      lines.push(`    header Cache-Control "${host.performance.cacheControl}"`);
+    }
+    if (host.fileServer?.hide?.length > 0) {
+      host.fileServer.hide.forEach(pattern => { lines.push('    file_server {'); lines.push(`        hide ${pattern}`); lines.push('    }'); });
+    }
+    if (host.tls?.email) { lines.push(`    tls ${host.tls.email}`); }
+    else if (host.tls?.selfSigned) { lines.push('    tls internal'); }
+    else if (host.tls?.certFile && host.tls?.keyFile) { lines.push(`    tls ${host.tls.certFile} ${host.tls.keyFile}`); }
+    if (host.basicAuth?.length) {
+      host.basicAuth.forEach(({ username, password }) => { lines.push(`    basicauth * {`); lines.push(`        ${username} ${password}`); lines.push('    }'); });
+    }
+    if (host.headers?.length) {
+      host.headers.forEach(({ name, value }) => lines.push(`    header ${name} "${value}"`));
+    }
+    lines.push('}');
+    return lines.join('\n');
+  }).join('\n\n');
 });
 
 // ── Output ────────────────────────────────────────────────────────────────────
@@ -167,25 +125,113 @@ const configOutput = computed(() =>
   isNginx.value ? generateNginxConfig(props.hosts) : caddyConfig.value
 );
 
-function downloadConfig() {
-  const blob = new Blob([configOutput.value], { type: 'application/octet-stream' });
+// ── Pending changes tracking ──────────────────────────────────────────────────
+
+const lastActionedConfig = ref('');
+const hasPendingChanges = computed(() =>
+  lastActionedConfig.value !== '' && configOutput.value !== lastActionedConfig.value
+);
+
+function markActioned() {
+  lastActionedConfig.value = configOutput.value;
+  showReloadHint.value = true;
+}
+
+// ── Reload hint ───────────────────────────────────────────────────────────────
+
+const showReloadHint = ref(false);
+
+const reloadCommand = computed(() => {
+  if (isNginx.value) {
+    return { primary: 'sudo nginx -s reload', alt: 'sudo systemctl reload nginx' };
+  }
+  return { primary: 'sudo systemctl reload caddy', alt: 'caddy reload --config /etc/caddy/Caddyfile' };
+});
+
+// ── File helpers ──────────────────────────────────────────────────────────────
+
+function timestamp(): string {
+  const now = new Date();
+  return now.toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+}
+
+function triggerDownload(content: string, name: string, mime = 'application/octet-stream') {
+  const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename.value;
+  a.download = name;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
-function copyConfig() {
-  navigator.clipboard.writeText(configOutput.value);
+function downloadConfig() {
+  triggerDownload(configOutput.value, filename.value);
+  markActioned();
 }
 
+function copyConfig() {
+  navigator.clipboard.writeText(configOutput.value);
+  markActioned();
+}
+
+// ── Caddy Admin API ───────────────────────────────────────────────────────────
+
+const showApiPanel = ref(false);
+const apiUrl = ref(localStorage.getItem('caddyApiUrl') || 'http://localhost:2019');
+type ApiStatus = 'idle' | 'loading' | 'success' | 'error';
+const apiStatus = ref<ApiStatus>('idle');
+const apiMessage = ref('');
+
+watch(apiUrl, v => localStorage.setItem('caddyApiUrl', v));
+
+async function applyToCaddy() {
+  apiStatus.value = 'loading';
+  apiMessage.value = '';
+
+  // 1. Backup the currently running config
+  try {
+    const backupRes = await fetch(`${apiUrl.value}/config/`);
+    if (backupRes.ok) {
+      const backupJson = await backupRes.text();
+      triggerDownload(backupJson, `Caddyfile-backup_${timestamp()}.json`, 'application/json');
+    }
+  } catch {
+    // Non-fatal — continue with apply even if backup fetch fails
+  }
+
+  // 2. Push new config
+  try {
+    const res = await fetch(`${apiUrl.value}/load`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/caddyfile' },
+      body: configOutput.value,
+    });
+
+    if (res.ok) {
+      apiStatus.value = 'success';
+      apiMessage.value = 'Config applied — Caddy reloaded successfully.';
+      markActioned();
+    } else {
+      const text = await res.text();
+      apiStatus.value = 'error';
+      apiMessage.value = text || `Server responded with ${res.status}`;
+    }
+  } catch {
+    apiStatus.value = 'error';
+    apiMessage.value = 'Could not reach the Caddy admin API. Is it running and accessible?';
+  }
+
+  if (apiStatus.value !== 'error') {
+    setTimeout(() => { apiStatus.value = 'idle'; apiMessage.value = ''; }, 4000);
+  }
+}
+
+// ── Validation ────────────────────────────────────────────────────────────────
+
 const validationIssues = computed(() => validateHosts(props.hosts));
-const errors = computed(() => validationIssues.value.filter(i => i.type === 'error'));
-const warnings = computed(() => validationIssues.value.filter(i => i.type === 'warning'));
 </script>
 
 <template>
@@ -209,26 +255,118 @@ const warnings = computed(() => validationIssues.value.filter(i => i.type === 'w
       </div>
     </div>
 
+    <!-- Action bar -->
     <div class="actions -mb-12 relative z-10 pr-4 pt-4" style="margin-bottom:-60px;">
       <div class="ml-auto flex items-center gap-2">
+        <!-- Pending changes dot -->
+        <span
+          v-if="hasPendingChanges"
+          class="inline-flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400 font-medium"
+        >
+          <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+          Unsaved changes
+        </span>
+
         <span class="text-xs text-muted-foreground font-mono">{{ filename }}</span>
+
+        <!-- Caddy API apply button (Caddy only) -->
+        <button
+          v-if="!isNginx"
+          @click="showApiPanel = !showApiPanel"
+          :class="[
+            'inline-flex items-center justify-center w-8 h-8 rounded-lg transition-colors',
+            showApiPanel ? 'bg-primary text-white' : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
+          ]"
+          title="Caddy Admin API settings"
+        >
+          <Settings2 class="w-4 h-4" />
+        </button>
+
         <button
           @click="downloadConfig"
-          class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg p-2 transition-colors"
+          class="relative inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg p-2 transition-colors"
           :title="`Download ${filename}`"
         >
           <Download class="w-5 h-5" />
+          <span v-if="hasPendingChanges" class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yellow-400 border-2 border-slate-900"></span>
         </button>
+
         <button
           @click="copyConfig"
-          class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg p-2 transition-colors"
+          class="relative inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg p-2 transition-colors"
           title="Copy to Clipboard"
         >
           <Copy class="w-5 h-5" />
+          <span v-if="hasPendingChanges" class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yellow-400 border-2 border-slate-900"></span>
         </button>
       </div>
     </div>
+
+    <!-- Config output -->
     <pre class="rounded-lg p-4 pt-16 bg-slate-900"><code :class="`language-${language}`">{{ configOutput }}</code></pre>
+
+    <!-- Caddy Admin API panel -->
+    <div v-if="showApiPanel && !isNginx" class="mt-3 rounded-lg border border-border/50 bg-card p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <p class="text-sm font-medium">Apply via Caddy Admin API</p>
+        <button @click="showApiPanel = false" class="text-muted-foreground hover:text-foreground">
+          <X class="w-4 h-4" />
+        </button>
+      </div>
+      <p class="text-xs text-muted-foreground">
+        Pushes the config directly to a running Caddy instance with zero downtime.
+        The current running config will be downloaded as a backup first.
+      </p>
+      <div class="flex gap-2">
+        <input
+          v-model="apiUrl"
+          class="flex-1 px-3 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground outline-none focus:border-primary"
+          placeholder="http://localhost:2019"
+        />
+        <button
+          @click="applyToCaddy"
+          :disabled="apiStatus === 'loading'"
+          class="inline-flex items-center gap-2 px-4 py-1.5 text-sm bg-primary hover:bg-primary/90 disabled:opacity-60 text-white rounded-lg transition-colors"
+        >
+          <Loader2 v-if="apiStatus === 'loading'" class="w-4 h-4 animate-spin" />
+          <RefreshCw v-else class="w-4 h-4" />
+          {{ apiStatus === 'loading' ? 'Applying…' : 'Apply & Reload' }}
+        </button>
+      </div>
+      <!-- API feedback -->
+      <div
+        v-if="apiMessage"
+        :class="[
+          'flex items-start gap-2 rounded-lg px-3 py-2 text-sm',
+          apiStatus === 'success'
+            ? 'bg-green-500/10 border border-green-500/30 text-green-600 dark:text-green-400'
+            : 'bg-destructive/10 border border-destructive/30 text-destructive'
+        ]"
+      >
+        <Check v-if="apiStatus === 'success'" class="w-4 h-4 mt-0.5 shrink-0" />
+        <XCircle v-else class="w-4 h-4 mt-0.5 shrink-0" />
+        {{ apiMessage }}
+      </div>
+    </div>
+
+    <!-- Reload hint banner -->
+    <div
+      v-if="showReloadHint"
+      class="mt-3 flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-card px-4 py-3 text-sm"
+    >
+      <div class="space-y-1">
+        <p class="font-medium text-foreground">Reload your server to apply changes</p>
+        <div class="flex flex-wrap gap-2 font-mono text-xs">
+          <code class="rounded bg-muted px-2 py-1 text-muted-foreground">{{ reloadCommand.primary }}</code>
+          <span class="text-muted-foreground self-center">or</span>
+          <code class="rounded bg-muted px-2 py-1 text-muted-foreground">{{ reloadCommand.alt }}</code>
+        </div>
+      </div>
+      <button @click="showReloadHint = false" class="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground">
+        <X class="w-4 h-4" />
+      </button>
+    </div>
+
   </div>
 </template>
 
