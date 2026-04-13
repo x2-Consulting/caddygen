@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Globe, Github, ExternalLink, Settings, ChevronDown, ChevronUp, Upload, Sun, Moon } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Globe, Github, ExternalLink, Settings, ChevronDown, ChevronUp, Upload, Sun, Moon, Share2, Check } from 'lucide-vue-next';
 import type { CaddyHost } from './types/caddy';
 import { presets } from './presets';
 import HostForm from './components/HostForm.vue';
 import CaddyConfig from './components/CaddyConfig.vue';
 import ImportModal from './components/ImportModal.vue';
+import LZString from 'lz-string';
 
 const showDescription = ref(localStorage.getItem('showDescription') !== 'false');
 const hosts = ref<CaddyHost[]>([]);
@@ -13,6 +14,7 @@ const showForm = ref(false);
 const editingHost = ref<CaddyHost | undefined>();
 const showImportModal = ref(false);
 const isDark = ref(localStorage.getItem('theme') !== 'light');
+const shareCopied = ref(false);
 
 function applyTheme() {
   if (isDark.value) {
@@ -33,8 +35,32 @@ function toggleDescription() {
   localStorage.setItem('showDescription', showDescription.value.toString());
 }
 
+function shareConfig() {
+  const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(hosts.value));
+  const url = `${window.location.origin}${window.location.pathname}?config=${compressed}`;
+  navigator.clipboard.writeText(url);
+  shareCopied.value = true;
+  setTimeout(() => { shareCopied.value = false; }, 2000);
+}
+
 onMounted(() => {
   applyTheme();
+  const params = new URLSearchParams(window.location.search);
+  const configParam = params.get('config');
+  if (configParam) {
+    try {
+      const decompressed = LZString.decompressFromEncodedURIComponent(configParam);
+      if (decompressed) {
+        hosts.value = JSON.parse(decompressed);
+        localStorage.setItem('caddyHosts', JSON.stringify(hosts.value));
+      }
+    } catch {
+      // Ignore malformed config params
+    }
+    // Clean the URL without reloading
+    window.history.replaceState({}, '', window.location.pathname);
+    return;
+  }
   const savedHosts = localStorage.getItem('caddyHosts');
   if (savedHosts) {
     hosts.value = JSON.parse(savedHosts);
@@ -99,6 +125,16 @@ function importHosts(newHosts: CaddyHost[]) {
           >
             <Sun v-if="isDark" class="w-4 h-4" />
             <Moon v-else class="w-4 h-4" />
+          </button>
+          <button
+            v-if="hosts.length > 0"
+            @click="shareConfig"
+            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-4 py-2 transition-colors"
+            title="Copy shareable link to clipboard"
+          >
+            <Check v-if="shareCopied" class="w-4 h-4 text-green-500" />
+            <Share2 v-else class="w-4 h-4" />
+            {{ shareCopied ? 'Copied!' : 'Share' }}
           </button>
           <button
             @click="showImportModal = true"
