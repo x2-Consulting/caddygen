@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { X, Search, Globe, Github } from 'lucide-vue-next';
+import { X, Search, Globe, Github, ExternalLink } from 'lucide-vue-next';
 import { presets } from '../presets';
 import type { PresetConfig } from '../types/caddy';
 import { nextTick } from 'vue';
@@ -158,6 +158,17 @@ function selectPreset(preset: PresetConfig) {
         <div v-if="filteredPresets.length === 0" class="text-center py-8 text-muted-foreground">
           No presets found matching your search
         </div>
+      </div>
+      <div class="px-6 py-3 border-t border-border/50 bg-muted/30 flex justify-end">
+        <a
+          href="https://github.com/x2-Consulting/caddygen/issues/new?labels=preset+request&title=Preset+suggestion%3A+"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ExternalLink class="w-3 h-3" />
+          Suggest a preset
+        </a>
       </div>
     </div>
   </div>
