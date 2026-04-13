@@ -61,6 +61,7 @@ export interface CaddyHost {
 export interface CaddyServer {
   id: string;
   name: string;
+  serverType?: 'caddy' | 'nginx';
   hosts: CaddyHost[];
 }
 

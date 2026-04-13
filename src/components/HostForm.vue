@@ -7,7 +7,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 const props = defineProps<{
   initialHost?: CaddyHost;
+  serverType?: 'caddy' | 'nginx';
 }>();
+
+const isNginx = computed(() => props.serverType === 'nginx');
 
 const emit = defineEmits<{
   save: [host: CaddyHost];
@@ -151,7 +154,7 @@ function applyPreset(preset: PresetConfig) {
             </label> 
           </div>
 
-          <div class="form-group" v-if="host.fileServer.php || host.fileServer.frankenphp">
+          <div class="form-group" v-if="!isNginx && (host.fileServer.php || host.fileServer.frankenphp)">
             <label class="checkbox">
               <input type="checkbox" v-model="host.fileServer.frankenphp" />
               Enable <a href="https://frankenphp.dev">FrankenPHP</a>
@@ -335,7 +338,7 @@ function applyPreset(preset: PresetConfig) {
           <div class="advanced-section">
             <h3 class="text-lg font-semibold mb-4">Performance</h3>
  
-            <div class="form-group">
+            <div class="form-group" v-if="!isNginx">
               <label class="checkbox">
                 <input type="checkbox" v-model="host.performance.brotli" />
                 Enable Brotli compression (requires <a href="https://caddyserver.com/docs/modules/http.encoders.br">an additional module</a>)

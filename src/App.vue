@@ -311,6 +311,28 @@ onMounted(() => {
           <Plus class="w-3.5 h-3.5" />
           New Server
         </button>
+
+        <!-- Server type toggle for active server -->
+        <div class="ml-auto flex items-center gap-1 rounded-lg border border-border/50 p-0.5">
+          <button
+            @click="activeServer.serverType = 'caddy'; persist()"
+            :class="[
+              'px-3 py-1 text-xs font-medium rounded transition-colors',
+              (activeServer.serverType ?? 'caddy') === 'caddy'
+                ? 'bg-primary text-white'
+                : 'text-muted-foreground hover:text-foreground'
+            ]"
+          >Caddy</button>
+          <button
+            @click="activeServer.serverType = 'nginx'; persist()"
+            :class="[
+              'px-3 py-1 text-xs font-medium rounded transition-colors',
+              activeServer.serverType === 'nginx'
+                ? 'bg-primary text-white'
+                : 'text-muted-foreground hover:text-foreground'
+            ]"
+          >Nginx</button>
+        </div>
       </div>
 
       <!-- Hosts list -->
@@ -430,12 +452,13 @@ onMounted(() => {
           </div>
         </div>
 
-        <CaddyConfig :hosts="activeHosts" v-if="activeHosts.length > 0" />
+        <CaddyConfig :hosts="activeHosts" :server-type="activeServer.serverType" v-if="activeHosts.length > 0" />
       </div>
 
       <HostForm
         v-else
         :initial-host="editingHost"
+        :server-type="activeServer.serverType"
         @save="saveHost"
         @cancel="cancelEdit"
       />

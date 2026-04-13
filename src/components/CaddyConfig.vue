@@ -2,108 +2,67 @@
 import { computed, onMounted, watch, nextTick } from 'vue';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-nginx';
 import { Download, Copy, AlertTriangle, XCircle } from 'lucide-vue-next';
 import type { CaddyHost } from '../types/caddy';
 import { validateHosts } from '../utils/validate';
+import { generateNginxConfig } from '../utils/nginxGenerator';
 
 interface Props {
   hosts: CaddyHost[];
+  serverType?: 'caddy' | 'nginx';
 }
 
 const props = defineProps<Props>();
 
+const isNginx = computed(() => props.serverType === 'nginx');
+const language = computed(() => isNginx.value ? 'nginx' : 'caddy');
+const filename = computed(() => isNginx.value ? 'nginx.conf' : 'Caddyfile');
+
 onMounted(() => {
   if (!Prism.languages.caddy) {
     Prism.languages.caddy = {
-      'quoted-string': {
-        pattern: /"(?:\\.|[^"\\])*"/,
-        alias: 'string'
-      },
-      'comment': {
-        pattern: /#.*/,
-        greedy: true
-      },
+      'quoted-string': { pattern: /"(?:\\.|[^"\\])*"/, alias: 'string' },
+      'comment': { pattern: /#.*/, greedy: true },
       'directive': {
         pattern: /^\s*(root|file_server|reverse_proxy|encode|tls|basicauth|header|php_fastcgi|php_server|rate_limit|respond|remote_ip|hide|not|forward_auth|uri|copy_headers)\b/m,
         alias: 'keyword'
       },
       'block': {
         pattern: /{[\s\S]*?}/,
-        inside: {
-          'punctuation': /[{}]/,
-          'content': {
-            pattern: /[\s\S]+/,
-            inside: Prism.languages.caddy
-          }
-        }
+        inside: { 'punctuation': /[{}]/, 'content': { pattern: /[\s\S]+/, inside: Prism.languages.caddy } }
       },
-      'variable': {
-        pattern: /\{\{[^}]+\}\}/,
-        alias: 'variable'
-      },
-      'matcher': {
-        pattern: /@\w+/,
-        alias: 'function'
-      },
-      'domain': {
-        pattern: /^[^\s{]+/m,
-        alias: 'string'
-      },
-      'path': {
-        pattern: /(?<=\s)\/[^\s]*/,
-        alias: 'string'
-      },
-      'url': {
-        pattern: /https?:\/\/[^\s]*/,
-        alias: 'string'
-      },
-      'email': {
-        pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,
-        alias: 'string'
-      },
-      'wildcard': {
-        pattern: /\*/,
-        alias: 'operator'
-      },
-      'option': {
-        pattern: /\b(browse|internal|gzip|brotli|zstd|br|php_fastcgi|php_server|uri|copy_headers)\b/,
-        alias: 'property'
-      },
-      'number': {
-        pattern: /\b\d+\b/,
-        alias: 'number'
-      },
-      'time-unit': {
-        pattern: /\b[smhd]\b/,
-        alias: 'unit'
-      },
-      'ip-address': {
-        pattern: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\/\d{1,2})?\b/,
-        alias: 'constant'
-      },
+      'variable': { pattern: /\{\{[^}]+\}\}/, alias: 'variable' },
+      'matcher': { pattern: /@\w+/, alias: 'function' },
+      'domain': { pattern: /^[^\s{]+/m, alias: 'string' },
+      'path': { pattern: /(?<=\s)\/[^\s]*/, alias: 'string' },
+      'url': { pattern: /https?:\/\/[^\s]*/, alias: 'string' },
+      'email': { pattern: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/, alias: 'string' },
+      'wildcard': { pattern: /\*/, alias: 'operator' },
+      'option': { pattern: /\b(browse|internal|gzip|brotli|zstd|br|php_fastcgi|php_server|uri|copy_headers)\b/, alias: 'property' },
+      'number': { pattern: /\b\d+\b/, alias: 'number' },
+      'time-unit': { pattern: /\b[smhd]\b/, alias: 'unit' },
+      'ip-address': { pattern: /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\/\d{1,2})?\b/, alias: 'constant' },
       'punctuation': /[{}]/
     };
   }
   Prism.highlightAll();
 });
 
-watch(() => props.hosts, () => {
-  nextTick(() => {
-    Prism.highlightAll();
-  });
+watch(() => [props.hosts, props.serverType], () => {
+  nextTick(() => Prism.highlightAll());
 }, { deep: true });
+
+// ── Caddy generator ───────────────────────────────────────────────────────────
 
 const caddyConfig = computed(() => {
   return props.hosts
     .map((host) => {
-      const lines = [];
-      
-      // Add preset comment if available
-      if (host.presetName) {
-        lines.push(`# ${host.presetName}`);
-      }
+      const lines: string[] = [];
 
-      if (host.fileServer && host.fileServer.frankenphp) {
+      if (host.presetName) lines.push(`# ${host.presetName}`);
+
+      if (host.fileServer?.frankenphp) {
         lines.push('{');
         lines.push('    frankenphp');
         lines.push('}');
@@ -122,32 +81,25 @@ const caddyConfig = computed(() => {
       } else if (host.reverseProxy) {
         lines.push(`    reverse_proxy ${host.reverseProxy}`);
       }
-      
-      // Handle encoding directives
+
       if (host.performance?.brotli) {
         lines.push('    encode zstd br gzip');
       } else if (host.encode) {
         lines.push('    encode');
       }
 
-      // Security settings
-      if (host.security?.cspEnabled && host.security?.csp && host.security.csp.trim()) {
+      if (host.security?.cspEnabled && host.security?.csp?.trim()) {
         lines.push(`    header Content-Security-Policy "${host.security.csp}"`);
       }
 
       if (host.security?.ipFilter?.enabled && (host.security?.ipFilter?.allow?.length || host.security?.ipFilter?.block?.length)) {
         lines.push('    @blocked {');
-        if (host.security.ipFilter.block?.length) {
-          lines.push(`        remote_ip ${host.security.ipFilter.block.join(' ')}`);
-        }
-        if (host.security.ipFilter.allow?.length) {
-          lines.push(`        not remote_ip ${host.security.ipFilter.allow.join(' ')}`);
-        }
+        if (host.security.ipFilter.block?.length) lines.push(`        remote_ip ${host.security.ipFilter.block.join(' ')}`);
+        if (host.security.ipFilter.allow?.length) lines.push(`        not remote_ip ${host.security.ipFilter.allow.join(' ')}`);
         lines.push('    }');
         lines.push('    respond @blocked 403');
       }
 
-      // Forward Authentication
       if (host.security?.forwardAuth?.enabled && host.security.forwardAuth.url) {
         lines.push('    forward_auth * {');
         lines.push(`        uri ${host.security.forwardAuth.url}`);
@@ -163,24 +115,16 @@ const caddyConfig = computed(() => {
         lines.push(`    rate_limit ${host.security.rateLimit.requests} ${host.security.rateLimit.window}`);
       }
 
-      // CORS settings
       if (host.cors?.enabled && host.cors.allowOrigins?.length) {
-        const origins = host.cors.allowOrigins.join(' ');
-        lines.push(`    header Access-Control-Allow-Origin "${origins}"`);
-        if (host.cors.allowMethods?.length) {
-          lines.push(`    header Access-Control-Allow-Methods "${host.cors.allowMethods.join(',')}"`);
-        }
-        if (host.cors.allowHeaders?.length) {
-          lines.push(`    header Access-Control-Allow-Headers "${host.cors.allowHeaders.join(',')}"`);
-        }
+        lines.push(`    header Access-Control-Allow-Origin "${host.cors.allowOrigins.join(' ')}"`);
+        if (host.cors.allowMethods?.length) lines.push(`    header Access-Control-Allow-Methods "${host.cors.allowMethods.join(',')}"`);
+        if (host.cors.allowHeaders?.length) lines.push(`    header Access-Control-Allow-Headers "${host.cors.allowHeaders.join(',')}"`);
       }
 
-      // Cache Control
       if (host.performance?.cacheControlEnabled && host.performance?.cacheControl?.trim()) {
         lines.push(`    header Cache-Control "${host.performance.cacheControl}"`);
       }
 
-      // File Server Hide Patterns
       if (host.fileServer?.hide?.length > 0) {
         host.fileServer.hide.forEach(pattern => {
           lines.push('    file_server {');
@@ -193,8 +137,7 @@ const caddyConfig = computed(() => {
         lines.push(`    tls ${host.tls.email}`);
       } else if (host.tls?.selfSigned) {
         lines.push('    tls internal');
-      }
-      else if(host.tls?.certFile && host.tls?.keyFile) {
+      } else if (host.tls?.certFile && host.tls?.keyFile) {
         lines.push(`    tls ${host.tls.certFile} ${host.tls.keyFile}`);
       }
 
@@ -218,12 +161,18 @@ const caddyConfig = computed(() => {
     .join('\n\n');
 });
 
+// ── Output ────────────────────────────────────────────────────────────────────
+
+const configOutput = computed(() =>
+  isNginx.value ? generateNginxConfig(props.hosts) : caddyConfig.value
+);
+
 function downloadConfig() {
-  const blob = new Blob([caddyConfig.value], { type: 'application/octet-stream' });
+  const blob = new Blob([configOutput.value], { type: 'application/octet-stream' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'Caddyfile';
+  a.download = filename.value;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -231,7 +180,7 @@ function downloadConfig() {
 }
 
 function copyConfig() {
-  navigator.clipboard.writeText(caddyConfig.value);
+  navigator.clipboard.writeText(configOutput.value);
 }
 
 const validationIssues = computed(() => validateHosts(props.hosts));
@@ -261,11 +210,12 @@ const warnings = computed(() => validationIssues.value.filter(i => i.type === 'w
     </div>
 
     <div class="actions -mb-12 relative z-10 pr-4 pt-4" style="margin-bottom:-60px;">
-      <div class="ml-auto flex gap-2">
+      <div class="ml-auto flex items-center gap-2">
+        <span class="text-xs text-muted-foreground font-mono">{{ filename }}</span>
         <button
           @click="downloadConfig"
           class="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg p-2 transition-colors"
-          title="Download Caddyfile"
+          :title="`Download ${filename}`"
         >
           <Download class="w-5 h-5" />
         </button>
@@ -278,7 +228,7 @@ const warnings = computed(() => validationIssues.value.filter(i => i.type === 'w
         </button>
       </div>
     </div>
-    <pre class="rounded-lg p-4 pt-16 bg-slate-900"><code class="language-caddy">{{ caddyConfig }}</code></pre>
+    <pre class="rounded-lg p-4 pt-16 bg-slate-900"><code :class="`language-${language}`">{{ configOutput }}</code></pre>
   </div>
 </template>
 
