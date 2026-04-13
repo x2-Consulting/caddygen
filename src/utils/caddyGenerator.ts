@@ -1,7 +1,21 @@
-import type { CaddyHost } from '../types/caddy';
+import type { CaddyHost, CaddyGlobalOptions } from '../types/caddy';
 
-export function generateCaddyConfig(hosts: CaddyHost[]): string {
-  return hosts.map((host) => {
+export function generateGlobalBlock(opts: CaddyGlobalOptions): string {
+  const lines: string[] = ['{'];
+  if (opts.email?.trim()) lines.push(`    email ${opts.email.trim()}`);
+  if (opts.admin?.trim()) lines.push(`    admin ${opts.admin.trim()}`);
+  if (opts.acmeCa?.trim()) lines.push(`    acme_ca ${opts.acmeCa.trim()}`);
+  if (opts.debug) lines.push('    debug');
+  lines.push('}');
+  return lines.join('\n');
+}
+
+export function generateCaddyConfig(hosts: CaddyHost[], globalOptions?: CaddyGlobalOptions): string {
+  const parts: string[] = [];
+  if (globalOptions && Object.values(globalOptions).some(v => v !== undefined && v !== '' && v !== false)) {
+    parts.push(generateGlobalBlock(globalOptions));
+  }
+  parts.push(...hosts.map((host) => {
     const lines: string[] = [];
     if (host.presetName) lines.push(`# ${host.presetName}`);
     if (host.fileServer?.frankenphp) { lines.push('{'); lines.push('    frankenphp'); lines.push('}'); }
@@ -57,5 +71,6 @@ export function generateCaddyConfig(hosts: CaddyHost[]): string {
     }
     lines.push('}');
     return lines.join('\n');
-  }).join('\n\n');
+  }));
+  return parts.join('\n\n');
 }

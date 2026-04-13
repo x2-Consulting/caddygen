@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Github, ExternalLink, Settings, ChevronDown, ChevronUp, Upload, Sun, Moon, Share2, Check, X, Download } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Github, ExternalLink, Settings, Settings2, ChevronDown, ChevronUp, Upload, Sun, Moon, Share2, Check, X, Download } from 'lucide-vue-next';
 import type { CaddyHost, CaddyServer } from './types/caddy';
 import { presets } from './presets';
 import { v4 as uuidv4 } from 'uuid';
@@ -132,6 +132,17 @@ function importHosts(newHosts: CaddyHost[]) {
   persist();
 }
 
+// ── Global options ───────────────────────────────────────────────────────────
+
+const showGlobalOptions = ref(false);
+
+function ensureGlobalOptions() {
+  if (!activeServer.value.globalOptions) {
+    activeServer.value.globalOptions = {};
+  }
+  return activeServer.value.globalOptions;
+}
+
 // ── Export all ───────────────────────────────────────────────────────────────
 
 function exportAllServers() {
@@ -139,7 +150,7 @@ function exportAllServers() {
   for (const server of servers.value) {
     if (!server.hosts.length) continue;
     const isNginx = server.serverType === 'nginx';
-    const content = isNginx ? generateNginxConfig(server.hosts) : generateCaddyConfig(server.hosts);
+    const content = isNginx ? generateNginxConfig(server.hosts) : generateCaddyConfig(server.hosts, server.globalOptions);
     const safeName = server.name.replace(/[^a-z0-9_-]/gi, '_');
     const filename = isNginx ? `${safeName}.nginx.conf` : `${safeName}.Caddyfile`;
     files[filename] = strToU8(content);
@@ -371,6 +382,60 @@ onMounted(() => {
         </div>
       </div>
 
+      <!-- Global Caddy Options -->
+      <div v-if="!showForm && (activeServer.serverType ?? 'caddy') === 'caddy'" class="mb-4">
+        <button
+          type="button"
+          @click="showGlobalOptions = !showGlobalOptions"
+          class="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Settings2 class="w-4 h-4" />
+          Global Caddy Options
+          <component :is="showGlobalOptions ? ChevronUp : ChevronDown" class="w-3 h-3" />
+        </button>
+        <div v-if="showGlobalOptions" class="mt-3 p-4 rounded-lg border border-border/50 bg-card space-y-3 max-w-xl">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-muted-foreground mb-1">ACME Email</label>
+              <input
+                :value="activeServer.globalOptions?.email ?? ''"
+                @input="ensureGlobalOptions().email = ($event.target as HTMLInputElement).value; persist()"
+                type="email"
+                placeholder="admin@example.com"
+                class="w-full px-3 py-1.5 text-sm rounded border border-border bg-background text-foreground"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-muted-foreground mb-1">Admin Endpoint</label>
+              <input
+                :value="activeServer.globalOptions?.admin ?? ''"
+                @input="ensureGlobalOptions().admin = ($event.target as HTMLInputElement).value; persist()"
+                placeholder="localhost:2019 or off"
+                class="w-full px-3 py-1.5 text-sm rounded border border-border bg-background text-foreground"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs text-muted-foreground mb-1">Custom ACME CA URL</label>
+            <input
+              :value="activeServer.globalOptions?.acmeCa ?? ''"
+              @input="ensureGlobalOptions().acmeCa = ($event.target as HTMLInputElement).value; persist()"
+              placeholder="https://acme.zerossl.com/v2/DV90"
+              class="w-full px-3 py-1.5 text-sm rounded border border-border bg-background text-foreground"
+            />
+          </div>
+          <label class="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              :checked="activeServer.globalOptions?.debug ?? false"
+              @change="ensureGlobalOptions().debug = ($event.target as HTMLInputElement).checked; persist()"
+              class="rounded border-border"
+            />
+            Enable debug logging
+          </label>
+        </div>
+      </div>
+
       <!-- Hosts list -->
       <div v-if="!showForm">
         <div class="flex gap-2">
@@ -488,7 +553,12 @@ onMounted(() => {
           </div>
         </div>
 
-        <CaddyConfig :hosts="activeHosts" :server-type="activeServer.serverType" v-if="activeHosts.length > 0" />
+        <CaddyConfig
+          :hosts="activeHosts"
+          :server-type="activeServer.serverType"
+          :global-options="activeServer.globalOptions"
+          v-if="activeHosts.length > 0"
+        />
       </div>
 
       <HostForm

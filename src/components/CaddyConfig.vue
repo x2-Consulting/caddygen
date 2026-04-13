@@ -4,7 +4,7 @@ import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-nginx';
 import { Download, Copy, AlertTriangle, XCircle, Check, RefreshCw, Settings2, X, Loader2 } from 'lucide-vue-next';
-import type { CaddyHost } from '../types/caddy';
+import type { CaddyHost, CaddyGlobalOptions } from '../types/caddy';
 import { validateHosts } from '../utils/validate';
 import { generateNginxConfig } from '../utils/nginxGenerator';
 import { generateCaddyConfig } from '../utils/caddyGenerator';
@@ -12,6 +12,7 @@ import { generateCaddyConfig } from '../utils/caddyGenerator';
 interface Props {
   hosts: CaddyHost[];
   serverType?: 'caddy' | 'nginx';
+  globalOptions?: CaddyGlobalOptions;
 }
 
 const props = defineProps<Props>();
@@ -59,7 +60,7 @@ watch(() => [props.hosts, props.serverType], () => {
 // ── Output ────────────────────────────────────────────────────────────────────
 
 const configOutput = computed(() =>
-  isNginx.value ? generateNginxConfig(props.hosts) : generateCaddyConfig(props.hosts)
+  isNginx.value ? generateNginxConfig(props.hosts) : generateCaddyConfig(props.hosts, props.globalOptions)
 );
 
 // ── Pending changes tracking ──────────────────────────────────────────────────

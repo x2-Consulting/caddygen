@@ -58,11 +58,19 @@ export interface CaddyHost {
   };
 }
 
+export interface CaddyGlobalOptions {
+  email?: string;
+  admin?: string;
+  acmeCa?: string;
+  debug?: boolean;
+}
+
 export interface CaddyServer {
   id: string;
   name: string;
   serverType?: 'caddy' | 'nginx';
   hosts: CaddyHost[];
+  globalOptions?: CaddyGlobalOptions;
 }
 
 export interface PresetConfig {
