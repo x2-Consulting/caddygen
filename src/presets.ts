@@ -3,6 +3,54 @@ import type { PresetConfig } from './types/caddy';
 export const presets: PresetConfig[] = [
   // Media & Streaming
   {
+    name: 'Navidrome',
+    port: 4533,
+    description: 'Modern, lightweight music server and streamer compatible with the Subsonic/Airsonic API. Fast, simple, and supports large music libraries.',
+    category: 'Media & Streaming',
+    webLink: 'https://www.navidrome.org',
+    githubLink: 'https://github.com/navidrome/navidrome'
+  },
+  {
+    name: 'Audiobookshelf',
+    port: 13378,
+    description: 'Self-hosted audiobook and podcast server with a mobile-friendly web UI, progress syncing, and metadata fetching.',
+    category: 'Media & Streaming',
+    webLink: 'https://www.audiobookshelf.org',
+    githubLink: 'https://github.com/advplyr/audiobookshelf'
+  },
+  {
+    name: 'Immich',
+    port: 2283,
+    description: 'High-performance self-hosted photo and video backup solution. Offers automatic mobile backup, facial recognition, and a Google Photos-like UI.',
+    category: 'Media & Streaming',
+    webLink: 'https://immich.app',
+    githubLink: 'https://github.com/immich-app/immich'
+  },
+  {
+    name: 'PhotoPrism',
+    port: 2342,
+    description: 'AI-powered photo management app with automatic tagging, face recognition, and map views. Works without cloud dependence.',
+    category: 'Media & Streaming',
+    webLink: 'https://www.photoprism.app',
+    githubLink: 'https://github.com/photoprism/photoprism'
+  },
+  {
+    name: 'Kavita',
+    port: 5000,
+    description: 'Fast, feature-rich self-hosted digital library for manga, comics, and books with reader apps and OPDS support.',
+    category: 'Media & Streaming',
+    webLink: 'https://www.kavitareader.com',
+    githubLink: 'https://github.com/Kareadita/Kavita'
+  },
+  {
+    name: 'Komga',
+    port: 8080,
+    description: 'Media server for comics, manga, and webtoons with a web reader and REST API. Supports CBZ, CBR, PDF, and EPUB.',
+    category: 'Media & Streaming',
+    webLink: 'https://komga.org',
+    githubLink: 'https://github.com/gotson/komga'
+  },
+  {
     name: 'Jellyfin',
     port: 8096,
     description: 'Open-source media server for movies, TV shows, music, and more. Offers DVR functionality, user management, and a fully featured web client.',
@@ -42,6 +90,22 @@ export const presets: PresetConfig[] = [
   },
 
   // Downloaders & File Sharing
+  {
+    name: 'Syncthing',
+    port: 8384,
+    description: 'Continuous file synchronization program that syncs files between two or more computers in real time, without a central server.',
+    category: 'Downloaders & File Sharing',
+    webLink: 'https://syncthing.net',
+    githubLink: 'https://github.com/syncthing/syncthing'
+  },
+  {
+    name: 'Filebrowser',
+    port: 8080,
+    description: 'Web-based file manager with a clean UI. Upload, delete, preview, rename, and share files directly from a browser.',
+    category: 'Downloaders & File Sharing',
+    webLink: 'https://filebrowser.org',
+    githubLink: 'https://github.com/filebrowser/filebrowser'
+  },
   {
     name: 'SABnzbd',
     port: 8080,
@@ -94,6 +158,38 @@ export const presets: PresetConfig[] = [
   },
 
   // Media Management & Automation
+  {
+    name: 'Readarr',
+    port: 8787,
+    description: 'Book management tool in the *arr family. Automates downloading and organizing ebooks and audiobooks from Usenet and torrents.',
+    category: 'Media Management & Automation',
+    webLink: 'https://readarr.com',
+    githubLink: 'https://github.com/Readarr/Readarr'
+  },
+  {
+    name: 'Bazarr',
+    port: 6767,
+    description: 'Subtitle management companion for Sonarr and Radarr. Automatically searches and downloads subtitles for your media library.',
+    category: 'Media Management & Automation',
+    webLink: 'https://www.bazarr.media',
+    githubLink: 'https://github.com/morpheus65535/bazarr'
+  },
+  {
+    name: 'Tdarr',
+    port: 8265,
+    description: 'Distributed media transcoding automation system. Manages transcoding queues across multiple nodes to convert and compress media files.',
+    category: 'Media Management & Automation',
+    webLink: 'https://tdarr.io',
+    githubLink: 'https://github.com/HaveAGitGat/Tdarr'
+  },
+  {
+    name: 'Jellyseerr',
+    port: 5055,
+    description: 'Media request management system for Jellyfin, Emby, and Plex. Fork of Overseerr with first-class Jellyfin support.',
+    category: 'Media Management & Automation',
+    webLink: 'https://docs.jellyseerr.dev',
+    githubLink: 'https://github.com/Fallenbagel/jellyseerr'
+  },
   {
     name: 'Sonarr',
     port: 8989,
@@ -153,6 +249,30 @@ export const presets: PresetConfig[] = [
 
   // Home Automation & IoT
   {
+    name: 'ESPHome',
+    port: 6052,
+    description: 'System for controlling ESP8266/ESP32 microcontrollers via simple configuration files. Integrates tightly with Home Assistant.',
+    category: 'Home Automation & IoT',
+    webLink: 'https://esphome.io',
+    githubLink: 'https://github.com/esphome/esphome'
+  },
+  {
+    name: 'Frigate',
+    port: 5000,
+    description: 'NVR with real-time local object detection for IP cameras. Uses AI to detect people, vehicles, and more with minimal false positives.',
+    category: 'Home Automation & IoT',
+    webLink: 'https://frigate.video',
+    githubLink: 'https://github.com/blakeblackshear/frigate'
+  },
+  {
+    name: 'Zigbee2MQTT',
+    port: 8080,
+    description: 'Bridges Zigbee devices to MQTT, allowing them to be used without vendor cloud services. Supports hundreds of devices.',
+    category: 'Home Automation & IoT',
+    webLink: 'https://www.zigbee2mqtt.io',
+    githubLink: 'https://github.com/Koenkk/zigbee2mqtt'
+  },
+  {
     name: 'Home Assistant',
     port: 8123,
     description: 'Powerful home automation platform with extensive support for integrations (lights, switches, sensors, media players). A central hub for smart home setups.',
@@ -178,6 +298,30 @@ export const presets: PresetConfig[] = [
   },
 
   // Development & Code Hosting
+  {
+    name: 'Forgejo',
+    port: 3000,
+    description: 'Community-driven, self-hosted Git service forked from Gitea. Lightweight, fast, and fully compatible with Gitea.',
+    category: 'Development & Code Hosting',
+    webLink: 'https://forgejo.org',
+    githubLink: 'https://codeberg.org/forgejo/forgejo'
+  },
+  {
+    name: 'Woodpecker CI',
+    port: 8000,
+    description: 'Community fork of Drone CI. Simple, container-native CI/CD with tight Gitea and Forgejo integration.',
+    category: 'Development & Code Hosting',
+    webLink: 'https://woodpecker-ci.org',
+    githubLink: 'https://github.com/woodpecker-ci/woodpecker'
+  },
+  {
+    name: 'Coolify',
+    port: 8000,
+    description: 'Self-hosted Heroku/Netlify alternative. Deploy apps, databases, and services from Git repos with a clean dashboard.',
+    category: 'Development & Code Hosting',
+    webLink: 'https://coolify.io',
+    githubLink: 'https://github.com/coollabsio/coolify'
+  },
   {
     name: 'GitLab',
     port: 80,
@@ -213,6 +357,38 @@ export const presets: PresetConfig[] = [
   },
 
   // Monitoring & Analytics
+  {
+    name: 'InfluxDB',
+    port: 8086,
+    description: 'High-performance time-series database designed for storing metrics, events, and analytics data. Commonly paired with Grafana.',
+    category: 'Monitoring & Analytics',
+    webLink: 'https://www.influxdata.com',
+    githubLink: 'https://github.com/influxdata/influxdb'
+  },
+  {
+    name: 'Scrutiny',
+    port: 8080,
+    description: 'Hard drive health dashboard using S.M.A.R.T data. Monitors disk health trends and sends alerts on failures.',
+    category: 'Monitoring & Analytics',
+    webLink: 'https://github.com/AnalogJ/scrutiny',
+    githubLink: 'https://github.com/AnalogJ/scrutiny'
+  },
+  {
+    name: 'Glances',
+    port: 61208,
+    description: 'Cross-platform system monitoring tool with a web UI. Shows CPU, memory, disk, and network stats in real time.',
+    category: 'Monitoring & Analytics',
+    webLink: 'https://nicolargo.github.io/glances',
+    githubLink: 'https://github.com/nicolargo/glances'
+  },
+  {
+    name: 'ntfy',
+    port: 80,
+    description: 'Simple HTTP-based pub-sub notification service. Send push notifications to your phone or desktop from scripts or apps.',
+    category: 'Monitoring & Analytics',
+    webLink: 'https://ntfy.sh',
+    githubLink: 'https://github.com/binwiederhier/ntfy'
+  },
   {
     name: 'Grafana',
     port: 3000,
@@ -264,6 +440,62 @@ export const presets: PresetConfig[] = [
 
   // Productivity & Collaboration
   {
+    name: 'Wiki.js',
+    port: 3000,
+    description: 'Modern, powerful wiki platform built on Node.js. Supports Markdown, rich text editing, and various storage backends including Git.',
+    category: 'Productivity & Collaboration',
+    webLink: 'https://js.wiki',
+    githubLink: 'https://github.com/requarks/wiki'
+  },
+  {
+    name: 'Paperless-ngx',
+    port: 8000,
+    description: 'Document management system that transforms physical documents into a searchable online archive with OCR, tagging, and smart filtering.',
+    category: 'Productivity & Collaboration',
+    webLink: 'https://docs.paperless-ngx.com',
+    githubLink: 'https://github.com/paperless-ngx/paperless-ngx'
+  },
+  {
+    name: 'Mealie',
+    port: 9000,
+    description: 'Self-hosted recipe manager and meal planner with a clean UI. Import recipes from URLs, plan weekly meals, and generate shopping lists.',
+    category: 'Productivity & Collaboration',
+    webLink: 'https://mealie.io',
+    githubLink: 'https://github.com/mealie-recipes/mealie'
+  },
+  {
+    name: 'Joplin Server',
+    port: 22300,
+    description: 'Self-hosted sync server for Joplin, the open-source note-taking app. Syncs notes and notebooks across all your devices.',
+    category: 'Productivity & Collaboration',
+    webLink: 'https://joplinapp.org',
+    githubLink: 'https://github.com/laurent22/joplin'
+  },
+  {
+    name: 'Outline',
+    port: 3000,
+    description: 'Team knowledge base and wiki built for fast, collaborative editing. Markdown support, integrations with Slack and GitHub.',
+    category: 'Productivity & Collaboration',
+    webLink: 'https://www.getoutline.com',
+    githubLink: 'https://github.com/outline/outline'
+  },
+  {
+    name: 'Wallabag',
+    port: 80,
+    description: 'Self-hosted read-it-later application. Save articles and web pages for offline reading, with tagging and full-text search.',
+    category: 'Productivity & Collaboration',
+    webLink: 'https://wallabag.org',
+    githubLink: 'https://github.com/wallabag/wallabag'
+  },
+  {
+    name: 'Linkwarden',
+    port: 3000,
+    description: 'Self-hosted bookmark manager with automatic webpage archiving and full-text search. Share collections with your team.',
+    category: 'Productivity & Collaboration',
+    webLink: 'https://linkwarden.app',
+    githubLink: 'https://github.com/linkwarden/linkwarden'
+  },
+  {
     name: 'Nextcloud',
     port: 8080,
     description: 'Self-hosted productivity platform that includes file syncing, collaborative document editing, calendar, contacts, and more.',
@@ -306,6 +538,22 @@ export const presets: PresetConfig[] = [
 
   // Authentication & Identity
   {
+    name: 'Authentik',
+    port: 9000,
+    description: 'Flexible, self-hosted identity provider supporting SSO, OAuth2, SAML, LDAP, and SCIM. Good Keycloak alternative with a modern UI.',
+    category: 'Authentication & Identity',
+    webLink: 'https://goauthentik.io',
+    githubLink: 'https://github.com/goauthentik/authentik'
+  },
+  {
+    name: 'LLDAP',
+    port: 17170,
+    description: 'Lightweight LDAP server implementation for simple user management. Designed to work as a backend for authentication services.',
+    category: 'Authentication & Identity',
+    webLink: 'https://github.com/lldap/lldap',
+    githubLink: 'https://github.com/lldap/lldap'
+  },
+  {
     name: 'Keycloak',
     port: 8080,
     description: 'Open-source identity and access management solution. Provides single sign-on (SSO), identity brokering, and social login integration.',
@@ -323,6 +571,30 @@ export const presets: PresetConfig[] = [
   },
 
   // Security & Networking
+  {
+    name: 'AdGuard Home',
+    port: 3000,
+    description: 'Network-wide ad and tracker blocking DNS server. Alternative to Pi-hole with a modern UI and built-in HTTPS/DoH/DoT support.',
+    category: 'Security & Networking',
+    webLink: 'https://adguard.com/en/adguard-home/overview.html',
+    githubLink: 'https://github.com/AdguardTeam/AdGuardHome'
+  },
+  {
+    name: 'WG-Easy',
+    port: 51821,
+    description: 'The easiest way to run WireGuard VPN with a simple web UI for managing clients, QR codes, and connection stats.',
+    category: 'Security & Networking',
+    webLink: 'https://github.com/wg-easy/wg-easy',
+    githubLink: 'https://github.com/wg-easy/wg-easy'
+  },
+  {
+    name: 'Headscale',
+    port: 8080,
+    description: 'Self-hosted implementation of the Tailscale control server. Manage your own Tailscale-compatible mesh VPN network.',
+    category: 'Security & Networking',
+    webLink: 'https://headscale.net',
+    githubLink: 'https://github.com/juanfont/headscale'
+  },
   {
     name: 'Pi-hole',
     port: 80,
@@ -342,6 +614,30 @@ export const presets: PresetConfig[] = [
   },
 
   // Container & Server Management
+  {
+    name: 'Dockge',
+    port: 5001,
+    description: 'Self-hosted Docker Compose stack manager with a reactive UI. Create, edit, start, stop, and monitor stacks with ease.',
+    category: 'Container & Server Management',
+    webLink: 'https://dockge.kuma.pet',
+    githubLink: 'https://github.com/louislam/dockge'
+  },
+  {
+    name: 'Yacht',
+    port: 8000,
+    description: 'Container management UI focused on ease of use. Supports Docker and Docker Compose with a templating system for one-click deployments.',
+    category: 'Container & Server Management',
+    webLink: 'https://yacht.sh',
+    githubLink: 'https://github.com/SelfhostedPro/Yacht'
+  },
+  {
+    name: 'Cockpit',
+    port: 9090,
+    description: 'Web-based Linux server management UI. Manage storage, networking, containers, services, and users from a browser.',
+    category: 'Container & Server Management',
+    webLink: 'https://cockpit-project.org',
+    githubLink: 'https://github.com/cockpit-project/cockpit'
+  },
   {
     name: 'Portainer',
     port: 9000,
@@ -369,6 +665,14 @@ export const presets: PresetConfig[] = [
 
   // Password & Secrets Management
   {
+    name: 'Passbolt',
+    port: 443,
+    description: 'Open-source password manager designed for teams. Role-based access, audit logs, and browser extension support.',
+    category: 'Password & Secrets Management',
+    webLink: 'https://www.passbolt.com',
+    githubLink: 'https://github.com/passbolt/passbolt_api'
+  },
+  {
     name: 'Vaultwarden',
     port: 8080,
     description: 'Lightweight, self-hosted Bitwarden-compatible server for password management. Maintains core features with lower resource usage.',
@@ -387,6 +691,30 @@ export const presets: PresetConfig[] = [
   },
 
   // Messaging & Communication
+  {
+    name: 'Matrix Synapse',
+    port: 8008,
+    description: 'Reference homeserver for the Matrix open federated messaging protocol. Powers decentralised, end-to-end encrypted chat.',
+    category: 'Messaging & Communication',
+    webLink: 'https://matrix.org',
+    githubLink: 'https://github.com/element-hq/synapse'
+  },
+  {
+    name: 'Gotify',
+    port: 80,
+    description: 'Simple self-hosted push notification server. Send notifications from scripts or apps to your devices via a REST API.',
+    category: 'Messaging & Communication',
+    webLink: 'https://gotify.net',
+    githubLink: 'https://github.com/gotify/server'
+  },
+  {
+    name: 'Zulip',
+    port: 80,
+    description: 'Threaded team chat designed for async communication. Open-source with apps for all major platforms and powerful search.',
+    category: 'Messaging & Communication',
+    webLink: 'https://zulip.com',
+    githubLink: 'https://github.com/zulip/zulip'
+  },
   {
     name: 'Rocket.Chat',
     port: 3000,
