@@ -97,6 +97,22 @@ function setFileServerHide(e: Event) {
     host.value.fileServer.hide = (e.target as HTMLTextAreaElement).value.split('\n').filter(Boolean);
   }
 }
+
+function addBasicAuth() {
+  host.value.basicAuth.push({ username: '', password: '' });
+}
+
+function removeBasicAuth(index: number) {
+  host.value.basicAuth.splice(index, 1);
+}
+
+function addHeader() {
+  host.value.headers.push({ name: '', value: '' });
+}
+
+function removeHeader(index: number) {
+  host.value.headers.splice(index, 1);
+}
 </script>
 
 <template>
@@ -323,6 +339,28 @@ function setFileServerHide(e: Event) {
                   rows="3"
                 ></textarea>
               </div>
+              <div class="form-group">
+                <label>Allow Methods:</label>
+                <div class="method-checkboxes">
+                  <label v-for="method in ['GET','POST','PUT','DELETE','PATCH','OPTIONS','HEAD']" :key="method" class="method-check">
+                    <input
+                      type="checkbox"
+                      :checked="host.cors.allowMethods.includes(method)"
+                      @change="(e) => { const el = e.target as HTMLInputElement; el.checked ? host.cors.allowMethods.push(method) : host.cors.allowMethods.splice(host.cors.allowMethods.indexOf(method), 1) }"
+                    />
+                    {{ method }}
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Allow Headers (one per line):</label>
+                <textarea
+                  :value="host.cors.allowHeaders.join('\n')"
+                  @input="e => host.cors.allowHeaders = (e.target as HTMLTextAreaElement).value.split('\n').filter(Boolean)"
+                  placeholder="Authorization&#10;Content-Type"
+                  rows="3"
+                ></textarea>
+              </div>
             </template>
           </div>
 
@@ -351,6 +389,28 @@ function setFileServerHide(e: Event) {
                 placeholder="public, max-age=3600"
               />
             </div>
+          </div>
+
+          <!-- Basic Auth Section -->
+          <div class="advanced-section">
+            <h3 class="text-lg font-semibold mb-4">Basic Authentication</h3>
+            <div v-for="(entry, i) in host.basicAuth" :key="i" class="key-value-row">
+              <input v-model="entry.username" placeholder="username" />
+              <input v-model="entry.password" placeholder="hashed password" type="password" />
+              <button type="button" class="btn-remove" @click="removeBasicAuth(i)">×</button>
+            </div>
+            <button type="button" class="btn-add" @click="addBasicAuth">+ Add User</button>
+          </div>
+
+          <!-- Custom Headers Section -->
+          <div class="advanced-section">
+            <h3 class="text-lg font-semibold mb-4">Custom Response Headers</h3>
+            <div v-for="(header, i) in host.headers" :key="i" class="key-value-row">
+              <input v-model="header.name" placeholder="Header-Name" />
+              <input v-model="header.value" placeholder="value" />
+              <button type="button" class="btn-remove" @click="removeHeader(i)">×</button>
+            </div>
+            <button type="button" class="btn-add" @click="addHeader">+ Add Header</button>
           </div>
 
           <!-- File Server Hide Patterns -->
@@ -534,5 +594,112 @@ button.btn-link {
 button.btn-link:hover {
   color: hsl(var(--foreground));
   background: hsl(var(--muted));
+}
+
+.key-value-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: center;
+}
+
+.key-value-row input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.btn-remove {
+  background: none;
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  border-radius: 4px;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.btn-remove:hover {
+  background: hsl(var(--destructive) / 0.1);
+  border-color: hsl(var(--destructive));
+  color: hsl(var(--destructive));
+}
+
+.btn-add {
+  background: none;
+  border: 1px dashed hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  border-radius: 4px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.25rem;
+}
+
+.btn-add:hover {
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary));
+}
+
+.method-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.method-check {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.method-check:has(input:checked) {
+  background: hsl(var(--primary) / 0.15);
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary));
+}
+
+.method-check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.method-check input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 3px;
+  height: 6px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 </style>
