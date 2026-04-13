@@ -738,5 +738,245 @@ export const presets: PresetConfig[] = [
     category: 'Messaging & Communication',
     webLink: 'https://thelounge.chat',
     githubLink: 'https://github.com/thelounge/thelounge'
+  },
+  // ── Additional presets ────────────────────────────────────────────────────────
+  // Downloaders & File Sharing
+  {
+    name: 'MeTube',
+    port: 8081,
+    description: 'Web UI for yt-dlp. Download videos and audio from YouTube and hundreds of other sites.',
+    category: 'Downloaders & File Sharing',
+    githubLink: 'https://github.com/alexta69/metube'
+  },
+  {
+    name: 'Seafile',
+    port: 8000,
+    description: 'Open-source file sync and share platform with end-to-end encryption and team collaboration.',
+    category: 'Downloaders & File Sharing',
+    webLink: 'https://www.seafile.com',
+    githubLink: 'https://github.com/haiwen/seafile'
+  },
+  // Media Management & Automation
+  {
+    name: 'Autobrr',
+    port: 7474,
+    description: 'Modern autodl-irssi replacement. Monitors IRC announce channels and automates torrent downloads.',
+    category: 'Media Management & Automation',
+    githubLink: 'https://github.com/autobrr/autobrr'
+  },
+  {
+    name: 'Notifiarr',
+    port: 5454,
+    description: 'Unified notification client for the *arr suite, Plex, and other services.',
+    category: 'Media Management & Automation',
+    webLink: 'https://notifiarr.com',
+    githubLink: 'https://github.com/Notifiarr/notifiarr'
+  },
+  // Home Automation & IoT
+  {
+    name: 'Homebridge',
+    port: 8581,
+    description: 'Lightweight server that emulates the iOS HomeKit API, enabling non-native smart home devices.',
+    category: 'Home Automation & IoT',
+    webLink: 'https://homebridge.io',
+    githubLink: 'https://github.com/homebridge/homebridge'
+  },
+  {
+    name: 'Z-Wave JS UI',
+    port: 8091,
+    description: 'Full-featured Z-Wave control panel and MQTT gateway built with Node.js and Vue.',
+    category: 'Home Automation & IoT',
+    githubLink: 'https://github.com/zwave-js/zwave-js-ui'
+  },
+  {
+    name: 'Scrypted',
+    port: 11080,
+    description: 'High-performance home video integration platform with Apple HomeKit, Google Home, and Alexa support.',
+    category: 'Home Automation & IoT',
+    webLink: 'https://www.scrypted.app',
+    githubLink: 'https://github.com/koush/scrypted'
+  },
+  // Development & Code Hosting
+  {
+    name: 'SonarQube',
+    port: 9000,
+    description: 'Continuous code quality and security inspection platform supporting 30+ programming languages.',
+    category: 'Development & Code Hosting',
+    webLink: 'https://www.sonarqube.org',
+    githubLink: 'https://github.com/SonarSource/sonarqube'
+  },
+  {
+    name: 'Gogs',
+    port: 3000,
+    description: 'Painless self-hosted Git service. Lightweight alternative to Gitea written in Go.',
+    category: 'Development & Code Hosting',
+    webLink: 'https://gogs.io',
+    githubLink: 'https://github.com/gogs/gogs'
+  },
+  // Monitoring & Analytics
+  {
+    name: 'Gatus',
+    port: 8080,
+    description: 'Developer-oriented status page and uptime monitor configured via YAML with alerting support.',
+    category: 'Monitoring & Analytics',
+    githubLink: 'https://github.com/TwiN/gatus'
+  },
+  {
+    name: 'Changedetection.io',
+    port: 5000,
+    description: 'Self-hosted website change detection and notification service. Monitor any web page for updates.',
+    category: 'Monitoring & Analytics',
+    webLink: 'https://changedetection.io',
+    githubLink: 'https://github.com/dgtlmoon/changedetection.io'
+  },
+  {
+    name: 'Beszel',
+    port: 8090,
+    description: 'Lightweight server monitoring hub with Docker stats, historical data, and alert notifications.',
+    category: 'Monitoring & Analytics',
+    githubLink: 'https://github.com/henrygd/beszel'
+  },
+  // Productivity & Collaboration
+  {
+    name: 'Stirling PDF',
+    port: 8080,
+    description: 'Powerful locally-hosted PDF manipulation tool — split, merge, convert, compress, and sign PDFs.',
+    category: 'Productivity & Collaboration',
+    githubLink: 'https://github.com/Stirling-Tools/Stirling-PDF'
+  },
+  {
+    name: 'Vikunja',
+    port: 3456,
+    description: 'Open-source to-do and project management app with lists, kanban boards, Gantt charts, and team sharing.',
+    category: 'Productivity & Collaboration',
+    webLink: 'https://vikunja.io',
+    githubLink: 'https://github.com/go-vikunja/vikunja'
+  },
+  {
+    name: 'Planka',
+    port: 1337,
+    description: 'Elegant open-source Trello-like kanban board for workgroups with real-time collaboration.',
+    category: 'Productivity & Collaboration',
+    githubLink: 'https://github.com/plankanban/planka'
+  },
+  {
+    name: 'Memos',
+    port: 5230,
+    description: 'Lightweight, privacy-first self-hosted memo hub with Markdown support and a clean UI.',
+    category: 'Productivity & Collaboration',
+    githubLink: 'https://github.com/usememos/memos'
+  },
+  {
+    name: 'Hoarder',
+    port: 3000,
+    description: 'Self-hostable bookmark manager with AI-powered automatic tagging and full-text search.',
+    category: 'Productivity & Collaboration',
+    githubLink: 'https://github.com/hoarder-app/hoarder'
+  },
+  {
+    name: 'Monica',
+    port: 8000,
+    description: 'Personal CRM — organise contacts, reminders, notes, and relationship tracking.',
+    category: 'Productivity & Collaboration',
+    webLink: 'https://www.monicahq.com',
+    githubLink: 'https://github.com/monicahq/monica'
+  },
+  // Authentication & Identity
+  {
+    name: 'Zitadel',
+    port: 8080,
+    description: 'Cloud-native identity platform with OIDC, OAuth2, SAML, and MFA. Enterprise-grade self-hosted auth.',
+    category: 'Authentication & Identity',
+    webLink: 'https://zitadel.com',
+    githubLink: 'https://github.com/zitadel/zitadel'
+  },
+  {
+    name: 'Kanidm',
+    port: 8443,
+    description: 'Fast, secure identity management written in Rust. LDAP, OAuth2, and RADIUS support.',
+    category: 'Authentication & Identity',
+    githubLink: 'https://github.com/kanidm/kanidm'
+  },
+  // Security & Networking
+  {
+    name: 'Nginx Proxy Manager',
+    port: 81,
+    description: 'Expose services with free SSL via a clean web UI. Built on Nginx with Let\'s Encrypt integration.',
+    category: 'Security & Networking',
+    githubLink: 'https://github.com/NginxProxyManager/nginx-proxy-manager'
+  },
+  {
+    name: 'Crowdsec',
+    port: 6060,
+    description: 'Crowd-sourced security engine that detects and blocks attacks using collaborative threat intelligence.',
+    category: 'Security & Networking',
+    webLink: 'https://www.crowdsec.net',
+    githubLink: 'https://github.com/crowdsecurity/crowdsec'
+  },
+  {
+    name: 'Netbird',
+    port: 80,
+    description: 'Open-source WireGuard-based mesh VPN. Connect devices into a private network with zero-config NAT traversal.',
+    category: 'Security & Networking',
+    webLink: 'https://netbird.io',
+    githubLink: 'https://github.com/netbirdio/netbird'
+  },
+  // Container & Server Management
+  {
+    name: 'Caprover',
+    port: 3000,
+    description: 'Free, open-source PaaS on your own server. One-click app deployments with built-in SSL.',
+    category: 'Container & Server Management',
+    webLink: 'https://caprover.com',
+    githubLink: 'https://github.com/caprover/caprover'
+  },
+  {
+    name: 'Pocketbase',
+    port: 8090,
+    description: 'Open-source backend in a single file — realtime database, auth, file storage, and admin UI.',
+    category: 'Container & Server Management',
+    webLink: 'https://pocketbase.io',
+    githubLink: 'https://github.com/pocketbase/pocketbase'
+  },
+  {
+    name: 'MinIO',
+    port: 9001,
+    description: 'High-performance, S3-compatible object storage. Ideal for AI/ML, analytics, and backup workloads.',
+    category: 'Container & Server Management',
+    webLink: 'https://min.io',
+    githubLink: 'https://github.com/minio/minio'
+  },
+  // Password & Secrets Management
+  {
+    name: 'Infisical',
+    port: 8080,
+    description: 'Open-source secrets management — sync environment variables and API keys across teams and infra.',
+    category: 'Password & Secrets Management',
+    webLink: 'https://infisical.com',
+    githubLink: 'https://github.com/Infisical/infisical'
+  },
+  // Messaging & Communication
+  {
+    name: 'Listmonk',
+    port: 9000,
+    description: 'High-performance self-hosted newsletter and mailing list manager with a modern dashboard.',
+    category: 'Messaging & Communication',
+    webLink: 'https://listmonk.app',
+    githubLink: 'https://github.com/knadh/listmonk'
+  },
+  {
+    name: 'Mailcow',
+    port: 80,
+    description: 'Dockerised email server suite (Postfix, Dovecot, Rspamd) with a full web administration UI.',
+    category: 'Messaging & Communication',
+    webLink: 'https://mailcow.email',
+    githubLink: 'https://github.com/mailcow/mailcow-dockerized'
+  },
+  {
+    name: 'Conduit',
+    port: 6167,
+    description: 'Simple, fast Matrix homeserver written in Rust. Lightweight alternative to Synapse.',
+    category: 'Messaging & Communication',
+    githubLink: 'https://github.com/conduit-rs/conduit'
   }
 ];
