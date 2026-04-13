@@ -4,6 +4,68 @@
 
 ### Added
 
+#### Traefik dynamic config output (Feature 1)
+- Server type toggle now has a **Traefik** option alongside Caddy and Nginx
+- `traefikGenerator.ts` converts CaddyHost[] to a Traefik file-provider dynamic YAML:
+  - Routers with `Host()` rules, `websecure` entrypoint, `letsencrypt` certResolver by default
+  - Services with `loadBalancer.servers` from the reverse proxy target
+  - Middlewares: basicAuth, ipAllowList (v3), rateLimit, forwardAuth, compress, headers (custom + CORS + CSP)
+  - Automatic HTTP router generated alongside each HTTPS router
+  - Header comment block explains static config requirements and file-server limitations
+- Output uses YAML syntax highlighting (Prism.js `prism-yaml`)
+- Filename changes to `traefik-dynamic.yml`; reload hint shows the correct `cp` command
+- Caddy Admin API panel is hidden when Traefik is selected
+- Export All zip includes `<server-name>.traefik-dynamic.yml` for Traefik servers
+
+#### Config snippets / host templates (Feature 2)
+- **Save as template** button in every HostForm footer — inline name input, saves the full
+  host configuration (without domain or ID) to localStorage
+- **From Template** button appears next to "Add New Host" whenever templates exist
+- `TemplateModal`: searchable list of saved templates with feature badges
+  (Reverse proxy, HTTPS, Compression, Basic auth, CORS, IP filter, Rate limit, etc.)
+  and individual delete buttons
+- `useTemplates` composable: localStorage-backed store with save/delete/apply; shared
+  reactive state across all component instances
+
+#### Improved Caddyfile import parser (Feature 4)
+- Replaced the naive line-split parser with a proper **brace-depth block extractor**:
+  - Global options block (`{ }` with no preceding domain) is correctly skipped
+  - Snippet definitions `(name) { }` are skipped
+  - Multi-domain site addresses (`a.com b.com { }`) supported — first address used as canonical domain
+  - `handle`, `route`, and `handle_path` blocks are flattened so nested directives are extracted
+  - Matcher definitions (`@name`) are skipped without breaking the parse
+- Additional directives extracted: `tls` with cert/key paths, `selfSigned` (internal), email variants;
+  `header` (custom response headers); `forward_auth`; `rate_limit`; `php_fastcgi`; `frankenphp`;
+  `basicauth` (marks entry — credentials cannot be imported)
+
+#### Config history (Feature 3)
+- Every intentional action (Download, Copy, Apply via Admin API) records a **config snapshot**
+- `useConfigHistory` composable: localStorage store, max 30 entries per install, keyed by server ID;
+  duplicate suppression (skip if content matches the most recent entry)
+- **History panel** in CaddyConfig.vue: clock icon button appears when history exists;
+  lists entries with timestamp and content preview; Download and Delete per entry; "Clear all" button
+- History is per-server (identified by server ID) and persists across page reloads
+
+#### Preset suggestion link (Feature 5)
+- "Suggest a preset" link at the bottom of the PresetModal footer opens a GitHub issue
+  pre-labelled `preset request` with a title prefix
+
+#### 28 additional presets (Feature 6)
+Expanded preset library from 88 to 116+ entries across new and existing categories:
+- **Downloaders**: MeTube (8081), Seafile (8000)
+- **Media Management**: Autobrr (7474), Notifiarr (5454)
+- **Home Automation**: Homebridge (8581), Z-Wave JS UI (8091), Scrypted (11080)
+- **Development**: SonarQube (9000), Gogs (3000)
+- **Monitoring**: Gatus (8080), Changedetection.io (5000), Beszel (8090)
+- **Productivity**: Stirling PDF (8080), Vikunja (3456), Planka (1337), Memos (5230), Hoarder (3000), Monica (8000)
+- **Authentication**: Zitadel (8080), Kanidm (8443)
+- **Security**: Nginx Proxy Manager (81), Crowdsec (6060), Netbird (80)
+- **Container & Server Management**: Caprover (3000), Pocketbase (8090), MinIO (9001)
+- **Password & Secrets Management**: Infisical (8080)
+- **Messaging & Communication**: Listmonk (9000), Mailcow (80), Conduit (6167)
+
+### Added
+
 #### Basic auth, custom headers, and full CORS UI
 - Basic Authentication section in HostForm: add/remove username + hashed-password pairs
 - Custom Response Headers section: add/remove arbitrary name/value header pairs
