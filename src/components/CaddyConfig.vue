@@ -254,7 +254,7 @@ function copyConfig() {
         </button>
       </div>
     </div>
-    <pre class="rounded-lg p-4 pt-16" style="background: linear-gradient(to bottom right, #1a1a1a, #2a2a2a)"><code class="language-caddy">{{ caddyConfig }}</code></pre>
+    <pre class="rounded-lg p-4 pt-16 bg-slate-900"><code class="language-caddy">{{ caddyConfig }}</code></pre>
   </div>
 </template>
 

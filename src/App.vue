@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Globe, Github, ExternalLink, Settings, ChevronDown, ChevronUp, Upload } from 'lucide-vue-next';
+import { Plus, Pencil, Trash2, Server, HardDrive, Lock, Zap, Globe, Github, ExternalLink, Settings, ChevronDown, ChevronUp, Upload, Sun, Moon } from 'lucide-vue-next';
 import type { CaddyHost } from './types/caddy';
 import { presets } from './presets';
 import HostForm from './components/HostForm.vue';
@@ -12,6 +12,21 @@ const hosts = ref<CaddyHost[]>([]);
 const showForm = ref(false);
 const editingHost = ref<CaddyHost | undefined>();
 const showImportModal = ref(false);
+const isDark = ref(localStorage.getItem('theme') !== 'light');
+
+function applyTheme() {
+  if (isDark.value) {
+    document.documentElement.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+  }
+}
+
+function toggleDark() {
+  isDark.value = !isDark.value;
+  localStorage.setItem('theme', isDark.value ? 'dark' : 'light');
+  applyTheme();
+}
 
 function toggleDescription() {
   showDescription.value = !showDescription.value;
@@ -19,6 +34,7 @@ function toggleDescription() {
 }
 
 onMounted(() => {
+  applyTheme();
   const savedHosts = localStorage.getItem('caddyHosts');
   if (savedHosts) {
     hosts.value = JSON.parse(savedHosts);
@@ -63,28 +79,40 @@ function importHosts(newHosts: CaddyHost[]) {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col" style="background-color: #101227">
+  <div class="min-h-screen flex flex-col bg-background">
     <div class="container py-8 flex-1">
-      <h1 class="flex items-center gap-3 text-4xl font-bold mb-8 text-white">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-          <Settings class="w-7 h-7 text-white" />
-        </div>
-        <div class="flex flex-col">
-          <span>CaddyGen</span>
-          <span class="text-lg font-normal text-white/80">Caddy Config Generator</span>
-        </div>
-      </h1>
-      
-      <div class="mb-8">
-        <div class=" mb-2">
-          <button 
+      <div class="flex items-start justify-between mb-8">
+        <h1 class="flex items-center gap-3 text-4xl font-bold text-foreground">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+            <Settings class="w-7 h-7 text-white" />
+          </div>
+          <div class="flex flex-col">
+            <span>CaddyGen</span>
+            <span class="text-lg font-normal text-muted-foreground">Caddy Config Generator</span>
+          </div>
+        </h1>
+        <div class="flex items-center gap-2 pt-1">
+          <button
+            @click="toggleDark"
+            class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors"
+            :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          >
+            <Sun v-if="isDark" class="w-4 h-4" />
+            <Moon v-else class="w-4 h-4" />
+          </button>
+          <button
             @click="showImportModal = true"
-            class="absolute top-0 right-0 inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-4 py-2 transition-colors" style="position:absolute;top:10px;right:10px;"
+            class="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-lg px-4 py-2 transition-colors"
           >
             <Upload class="w-4 h-4" />
             Import Caddyfile
           </button>
-          <button 
+        </div>
+      </div>
+
+      <div class="mb-8">
+        <div class="mb-2">
+          <button
             class="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             @click="toggleDescription"
           >
@@ -130,7 +158,7 @@ function importHosts(newHosts: CaddyHost[]) {
           >
             <template v-if="host.presetName" v-for="preset in presets" :key="preset.name">
               <template v-if="preset.name === host.presetName && preset.logo">
-                <div 
+                <div
                   class="absolute right-0 bottom-0 w-40 h-40 opacity-30 transform translate-x-10 translate-y-10 [&_*]:fill-white"
                   v-html="preset.logo"
                   style="max-width: 160px; max-height: 160px;"
@@ -267,7 +295,7 @@ function importHosts(newHosts: CaddyHost[]) {
             </a>
             <span>•</span>
             <a 
-              href="https://github.com/DeanWard/CaddyGen" 
+              href="https://github.com/x2-Consulting/CaddyGen"
               target="_blank" 
               rel="noopener noreferrer"
               class="hover:text-foreground transition-colors"

@@ -114,9 +114,9 @@ function selectPreset(preset: PresetConfig) {
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
-                <div 
-                  v-if="preset.logo" 
-                  class="w-8 h-8 [&_*]:fill-white flex items-center justify-center overflow-hidden" 
+                <div
+                  v-if="preset.logo"
+                  class="w-8 h-8 [&_*]:fill-foreground dark:[&_*]:fill-white flex items-center justify-center overflow-hidden"
                   style="min-width: 32px;"
                   v-html="preset.logo"
                 ></div>
