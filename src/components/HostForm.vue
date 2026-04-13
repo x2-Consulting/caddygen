@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import type { CaddyHost } from '../types/caddy';
 import PresetSelect from './PresetSelect.vue';
+import HelpTooltip from './HelpTooltip.vue';
 import type { PresetConfig } from '../types/caddy';
 import { v4 as uuidv4 } from 'uuid';
 import { useTemplates } from '../composables/useTemplates';
@@ -198,6 +199,7 @@ function removeHeader(index: number) {
           <label class="checkbox">
             <input type="checkbox" v-model="host.encode" />
             Enable Gzip and Zstandard compression
+            <HelpTooltip content="Compresses responses (gzip + zstd) before sending to the browser. Reduces bandwidth for HTML, CSS, JS, and JSON. Has no effect on already-compressed files like images or video." />
           </label>
         </div>
 
@@ -207,7 +209,10 @@ function removeHeader(index: number) {
 
         <div v-if="showAdvanced" class="advanced-options">
           <div class="form-group">
-            <label>TLS Email (for Let's Encrypt):</label>
+            <label class="flex items-center gap-1">
+              TLS Email (for Let's Encrypt):
+              <HelpTooltip content="Caddy will automatically obtain and renew a free TLS certificate via Let's Encrypt. The email is used for certificate expiry notifications only — leave blank for anonymous registration. Requires port 80 and 443 to be publicly reachable." />
+            </label>
             <input
               v-model="host.tls.email"
               type="email"
@@ -219,16 +224,23 @@ function removeHeader(index: number) {
             <label class="checkbox">
               <input type="checkbox" v-model="host.tls.selfSigned" />
               Use self-signed certificate
+              <HelpTooltip content="Caddy generates a certificate signed by its own local CA. Useful for internal or development services. Browsers will show a security warning unless you trust the Caddy root CA manually." />
             </label>
           </div>
 
           <div class="form-group">
-            <label>Cert File:</label>
-            <input v-model="host.tls.certFile" placeholder="cert.pem" :disabled="tlsHasEmailOrSelfSigned" />
+            <label class="flex items-center gap-1">
+              Cert File:
+              <HelpTooltip content="Absolute path to your PEM-encoded certificate file on the server (e.g. /etc/ssl/certs/example.pem). Both Cert File and Key File must be set together. Disables automatic ACME certificate management." />
+            </label>
+            <input v-model="host.tls.certFile" placeholder="/etc/ssl/certs/example.pem" :disabled="tlsHasEmailOrSelfSigned" />
           </div>
           <div class="form-group">
-            <label>Key File:</label>
-            <input v-model="host.tls.keyFile" placeholder="key.pem" :disabled="tlsHasEmailOrSelfSigned" />
+            <label class="flex items-center gap-1">
+              Key File:
+              <HelpTooltip content="Absolute path to the private key file matching your certificate (e.g. /etc/ssl/private/example-key.pem). Must be set alongside Cert File." />
+            </label>
+            <input v-model="host.tls.keyFile" placeholder="/etc/ssl/private/example-key.pem" :disabled="tlsHasEmailOrSelfSigned" />
           </div>
 
           <!-- Security Section -->
@@ -239,11 +251,15 @@ function removeHeader(index: number) {
               <label class="checkbox">
                 <input type="checkbox" v-model="host.security.cspEnabled" />
                 Enable Content Security Policy
+                <HelpTooltip content="Adds a Content-Security-Policy header that tells browsers which sources are allowed to load scripts, styles, images, etc. Helps prevent XSS attacks. Start strict and relax as needed." />
               </label>
             </div>
-            
+
             <div class="form-group" v-if="host.security.cspEnabled">
-              <label>Content Security Policy:</label>
+              <label class="flex items-center gap-1">
+                Content Security Policy:
+                <HelpTooltip content="Common examples:&#10;• default-src 'self'&#10;  (only same-origin, strictest)&#10;• default-src 'self'; img-src 'self' data:&#10;  (allow inline images)&#10;• default-src 'self'; script-src 'self' 'unsafe-inline'&#10;  (allow inline scripts — weaker)" />
+              </label>
               <input
                 v-model="host.security.csp"
                 placeholder="default-src 'self';"
@@ -254,6 +270,7 @@ function removeHeader(index: number) {
               <label class="checkbox">
                 <input type="checkbox" v-model="host.security.ipFilter.enabled" />
                 Enable IP Filtering
+                <HelpTooltip content="Restrict access to specific IP addresses or ranges using CIDR notation:&#10;• 192.168.1.100/32  — single IP&#10;• 192.168.1.0/24    — whole /24 subnet&#10;• 10.0.0.0/8        — entire 10.x.x.x range&#10;• ::1/128           — IPv6 loopback" />
               </label>
             </div>
 
@@ -265,7 +282,7 @@ function removeHeader(index: number) {
                 placeholder="192.168.1.0/24"
                 rows="3"
               ></textarea>
-              
+
               <label>IP Block List (one per line):</label>
               <textarea
                 :value="host.security.ipFilter.block.join('\n')"
@@ -279,12 +296,16 @@ function removeHeader(index: number) {
               <label class="checkbox">
                 <input type="checkbox" v-model="host.security.forwardAuth.enabled" />
                 Enable Forward Authentication
+                <HelpTooltip content="Every request is forwarded to an auth server (e.g. Authelia, Authentik) before being proxied. A 2xx response allows the request through; 4xx blocks it. The auth server receives the original request headers including cookies." />
               </label>
             </div>
 
             <div v-if="host.security.forwardAuth.enabled" class="space-y-4" style="margin-bottom:20px;">
               <div class="form-group">
-                <label>Authentication URL:</label>
+                <label class="flex items-center gap-1">
+                  Authentication URL:
+                  <HelpTooltip content="The full URL your auth server exposes for verification. Examples:&#10;• Authelia: http://authelia:9091/api/authz/forward-auth&#10;• Authentik: http://authentik:9000/outpost.goauthentik.io/auth/caddy&#10;Must be reachable from the machine running Caddy." />
+                </label>
                 <input
                   v-model="host.security.forwardAuth.url"
                   placeholder="http://authelia:9091/api/verify"
@@ -311,11 +332,15 @@ function removeHeader(index: number) {
               <label class="checkbox">
                 <input type="checkbox" v-model="host.security.rateLimit.enabled" />
                 Enable Rate Limiting
+                <HelpTooltip content="Limits how many requests a single client IP can make in a given time window. Helps protect against brute-force attacks and abusive crawlers. Clients that exceed the limit receive a 429 Too Many Requests response." />
               </label>
             </div>
 
             <div class="form-group" v-if="host.security.rateLimit.enabled">
-              <label>Rate Limit:</label>
+              <label class="flex items-center gap-1">
+                Rate Limit:
+                <HelpTooltip content="Window format: a number followed by a unit.&#10;• 30s  — 30 seconds&#10;• 1m   — 1 minute&#10;• 1h   — 1 hour&#10;• 1d   — 1 day&#10;Example: 100 requests per 1m means each IP can make at most 100 requests per minute." />
+              </label>
               <div class="flex gap-2">
                 <input
                   type="number"
@@ -406,10 +431,13 @@ function removeHeader(index: number) {
 
           <!-- Basic Auth Section -->
           <div class="advanced-section">
-            <h3 class="text-lg font-semibold mb-4">Basic Authentication</h3>
+            <h3 class="flex items-center gap-1 text-lg font-semibold mb-4">
+              Basic Authentication
+              <HelpTooltip content="Protects the site with a username and password prompt in the browser. The password must be stored as a bcrypt hash — never plaintext.&#10;&#10;Generate a hash with:&#10;  caddy hash-password&#10;or online at bcrypt-generator.com" />
+            </h3>
             <div v-for="(entry, i) in host.basicAuth" :key="i" class="key-value-row">
               <input v-model="entry.username" placeholder="username" />
-              <input v-model="entry.password" placeholder="hashed password" type="password" />
+              <input v-model="entry.password" placeholder="bcrypt hash (caddy hash-password)" type="password" />
               <button type="button" class="btn-remove" @click="removeBasicAuth(i)">×</button>
             </div>
             <button type="button" class="btn-add" @click="addBasicAuth">+ Add User</button>

@@ -4,7 +4,7 @@ import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-nginx';
 import 'prismjs/components/prism-yaml';
-import { Download, Copy, AlertTriangle, XCircle, Check, RefreshCw, Settings2, X, Loader2, History, Trash2 } from 'lucide-vue-next';
+import { Download, Copy, AlertTriangle, XCircle, Check, RefreshCw, Settings2, X, Loader2, History, Trash2, ChevronDown, ChevronUp } from 'lucide-vue-next';
 import type { CaddyHost, CaddyGlobalOptions } from '../types/caddy';
 import { validateHosts } from '../utils/validate';
 import { generateNginxConfig } from '../utils/nginxGenerator';
@@ -85,6 +85,7 @@ const configOutput = computed(() => {
 const { addSnapshot, getServerHistory, deleteSnapshot, clearServerHistory } = useConfigHistory();
 
 const showHistory = ref(false);
+const showTraefikHelp = ref(false);
 const serverHistory = computed(() =>
   props.serverId ? getServerHistory(props.serverId) : []
 );
@@ -312,6 +313,96 @@ const validationIssues = computed(() => validateHosts(props.hosts));
 
     <!-- Config output -->
     <pre class="rounded-lg p-4 pt-16 bg-slate-900"><code :class="`language-${language}`">{{ configOutput }}</code></pre>
+
+    <!-- Traefik getting-started panel -->
+    <div v-if="isTraefik" class="mt-3">
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        @click="showTraefikHelp = !showTraefikHelp"
+      >
+        <ChevronDown v-if="!showTraefikHelp" class="w-3.5 h-3.5" />
+        <ChevronUp v-else class="w-3.5 h-3.5" />
+        {{ showTraefikHelp ? 'Hide' : 'Show' }} Traefik setup guide
+      </button>
+
+      <div v-if="showTraefikHelp" class="mt-3 rounded-lg border border-border/50 bg-card overflow-hidden text-sm">
+        <div class="px-5 py-4 border-b border-border/50 bg-muted/30">
+          <p class="font-semibold text-foreground">How to use this file</p>
+          <p class="text-muted-foreground text-xs mt-0.5">This is a Traefik <strong>dynamic configuration</strong> file using the file provider. It requires a matching static config.</p>
+        </div>
+
+        <div class="px-5 py-4 space-y-5">
+          <!-- Step 1 -->
+          <div>
+            <p class="font-medium mb-1.5">1. Minimal <code class="text-xs bg-muted px-1 py-0.5 rounded">traefik.yml</code> (static config)</p>
+            <pre class="rounded bg-slate-900 p-3 text-xs leading-relaxed overflow-x-auto"><code class="language-yaml">entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: you@example.com
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+api:
+  dashboard: true
+  insecure: false</code></pre>
+          </div>
+
+          <!-- Step 2 -->
+          <div>
+            <p class="font-medium mb-1.5">2. Place the generated file in the dynamic directory</p>
+            <pre class="rounded bg-slate-900 p-3 text-xs leading-relaxed overflow-x-auto"><code class="language-bash">cp traefik-dynamic.yml /etc/traefik/dynamic/</code></pre>
+            <p class="text-muted-foreground text-xs mt-1">Traefik watches the directory and applies changes live — no restart required.</p>
+          </div>
+
+          <!-- Step 3 Docker -->
+          <div>
+            <p class="font-medium mb-1.5">3. Minimal Docker Compose example</p>
+            <pre class="rounded bg-slate-900 p-3 text-xs leading-relaxed overflow-x-auto"><code class="language-yaml">services:
+  traefik:
+    image: traefik:v3
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/traefik.yml:ro
+      - ./dynamic:/etc/traefik/dynamic:ro
+      - letsencrypt:/letsencrypt
+volumes:
+  letsencrypt:</code></pre>
+          </div>
+
+          <!-- Notes -->
+          <div class="rounded-lg bg-yellow-500/8 border border-yellow-500/20 px-4 py-3 text-xs text-yellow-600 dark:text-yellow-400 space-y-1">
+            <p class="font-semibold">Things to check before deploying</p>
+            <ul class="list-disc list-inside space-y-0.5 mt-1">
+              <li>Ports 80 and 443 must be publicly reachable for Let's Encrypt HTTP challenges</li>
+              <li>DNS for each domain must already point to this server</li>
+              <li>File server hosts need a separate static file serving container — Traefik doesn't serve files itself</li>
+              <li>The <code class="bg-yellow-500/10 px-1 rounded">acme.json</code> file must have permissions <code class="bg-yellow-500/10 px-1 rounded">600</code>: <code class="bg-yellow-500/10 px-1 rounded">chmod 600 acme.json</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Caddy Admin API panel -->
     <div v-if="showApiPanel && !isNginx && !isTraefik" class="mt-3 rounded-lg border border-border/50 bg-card p-4 space-y-3">
