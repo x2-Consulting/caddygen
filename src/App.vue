@@ -493,7 +493,7 @@ onMounted(() => {
             </a>
             <span>•</span>
             <a
-              href="https://github.com/x2-Consulting/CaddyGen"
+              href="https://github.com/x2-Consulting/caddygen"
               target="_blank"
               rel="noopener noreferrer"
               class="hover:text-foreground transition-colors"

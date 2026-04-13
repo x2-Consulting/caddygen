@@ -71,7 +71,7 @@ Added 43 new presets across all categories:
 - **Messaging**: Matrix Synapse, Gotify, Zulip
 
 ### Changed
-- GitHub links updated to `x2-Consulting/CaddyGen`
+- GitHub links updated to `x2-Consulting/caddygen`
 - README fully rewritten to reflect new features and correct repo references
 - Share URL now encodes all servers (previously encoded a flat hosts array)
 - `lz-string` added as a dependency for URL compression

@@ -100,8 +100,8 @@ docker run -p 8189:80 caddygen
 **Stack:** Vue 3 · TypeScript · Vite · Tailwind CSS · Prism.js · Lucide Icons · lz-string
 
 ```bash
-git clone https://github.com/x2-Consulting/CaddyGen.git
-cd CaddyGen
+git clone https://github.com/x2-Consulting/caddygen.git
+cd caddygen
 npm install
 npm run dev
 ```
