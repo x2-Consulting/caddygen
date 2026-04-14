@@ -127,6 +127,15 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+### Production build
+
+```bash
+npm run build
+npm run preview
+```
+
+The preview server binds to `0.0.0.0` and is accessible over the network at `http://<host-ip>:4173`.
+
 ### Running tests
 
 ```bash
