@@ -579,7 +579,7 @@ onMounted(() => {
                 </template>
               </template>
             </div>
-            <p class="text-white/80 mb-4">
+            <div class="text-white/80 mb-4">
               <div class="flex items-center gap-2">
                 <span>{{ host.fileServer ? 'File Server' : 'Reverse Proxy' }}</span>
                 <div class="flex gap-1">
@@ -598,7 +598,7 @@ onMounted(() => {
                 </span>
               </span>
               <span v-else class="block mt-1 text-sm text-white/60">{{ host.reverseProxy }}</span>
-            </p>
+            </div>
             <div class="flex gap-2">
               <button
                 @click="editHost(host)"
