@@ -624,7 +624,7 @@ onMounted(() => {
           :global-options="activeServer.globalOptions"
           :server-id="activeServer.id"
           :server-name="activeServer.name"
-          v-if="activeHosts.length > 0"
+          @load-hosts="importHosts"
         />
       </div>
 

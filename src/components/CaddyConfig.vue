@@ -4,7 +4,7 @@ import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-nginx';
 import 'prismjs/components/prism-yaml';
-import { Download, Copy, AlertTriangle, XCircle, Check, RefreshCw, Settings2, X, Loader2, History, Trash2, ChevronDown, ChevronUp } from 'lucide-vue-next';
+import { Download, Copy, AlertTriangle, XCircle, Check, RefreshCw, Settings2, X, Loader2, History, Trash2, ChevronDown, ChevronUp, FolderDown } from 'lucide-vue-next';
 import type { CaddyHost, CaddyGlobalOptions } from '../types/caddy';
 import { validateHosts } from '../utils/validate';
 import { generateNginxConfig } from '../utils/nginxGenerator';
@@ -12,6 +12,7 @@ import { generateCaddyConfig } from '../utils/caddyGenerator';
 import { generateTraefikConfig } from '../utils/traefikGenerator';
 import { isValidCaddyAdminUrl } from '../utils/sanitize';
 import { useConfigHistory } from '../composables/useConfigHistory';
+import { parseCaddyJson } from '../utils/caddyJsonParser';
 
 interface Props {
   hosts: CaddyHost[];
@@ -22,6 +23,10 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const emit = defineEmits<{
+  'load-hosts': [hosts: CaddyHost[]];
+}>();
 
 const isNginx = computed(() => props.serverType === 'nginx');
 const isTraefik = computed(() => props.serverType === 'traefik');
@@ -225,6 +230,44 @@ async function applyToCaddy() {
   }
 }
 
+type LoadStatus = 'idle' | 'loading' | 'success' | 'error';
+const loadStatus = ref<LoadStatus>('idle');
+const loadMessage = ref('');
+
+async function loadFromCaddy() {
+  if (!isValidCaddyAdminUrl(apiUrl.value)) {
+    loadStatus.value = 'error';
+    loadMessage.value = 'Invalid admin URL. Only http(s)://localhost or 127.x.x.x addresses are allowed.';
+    return;
+  }
+  loadStatus.value = 'loading';
+  loadMessage.value = '';
+  try {
+    const res = await fetch(`${apiUrl.value}/config/`);
+    if (!res.ok) {
+      loadStatus.value = 'error';
+      loadMessage.value = `Admin API responded with ${res.status}`;
+      return;
+    }
+    const json = await res.json();
+    const hosts = parseCaddyJson(json);
+    if (!hosts.length) {
+      loadStatus.value = 'error';
+      loadMessage.value = 'No host routes found in the running config.';
+      return;
+    }
+    emit('load-hosts', hosts);
+    loadStatus.value = 'success';
+    loadMessage.value = `Loaded ${hosts.length} host${hosts.length === 1 ? '' : 's'} from running Caddy config.`;
+  } catch {
+    loadStatus.value = 'error';
+    loadMessage.value = 'Could not reach the Caddy admin API. Is it running and accessible?';
+  }
+  if (loadStatus.value !== 'error') {
+    setTimeout(() => { loadStatus.value = 'idle'; loadMessage.value = ''; }, 4000);
+  }
+}
+
 // ── Validation ────────────────────────────────────────────────────────────────
 
 const validationIssues = computed(() => validateHosts(props.hosts));
@@ -413,8 +456,8 @@ volumes:
         </button>
       </div>
       <p class="text-xs text-muted-foreground">
-        Pushes the config directly to a running Caddy instance with zero downtime.
-        The current running config will be downloaded as a backup first.
+        Connect to a running Caddy instance to load its current config into the editor, or push your config with zero downtime.
+        A timestamped backup is downloaded before applying.
       </p>
       <div class="flex flex-col sm:flex-row gap-2">
         <input
@@ -423,8 +466,18 @@ volumes:
           placeholder="http://localhost:2019"
         />
         <button
+          @click="loadFromCaddy"
+          :disabled="loadStatus === 'loading' || apiStatus === 'loading'"
+          class="inline-flex items-center justify-center gap-2 px-4 py-1.5 text-sm bg-secondary hover:bg-secondary/90 disabled:opacity-60 text-secondary-foreground rounded-lg transition-colors"
+          title="Load the current running config into the editor"
+        >
+          <Loader2 v-if="loadStatus === 'loading'" class="w-4 h-4 animate-spin" />
+          <FolderDown v-else class="w-4 h-4" />
+          {{ loadStatus === 'loading' ? 'Loading…' : 'Load Config' }}
+        </button>
+        <button
           @click="applyToCaddy"
-          :disabled="apiStatus === 'loading'"
+          :disabled="apiStatus === 'loading' || loadStatus === 'loading'"
           class="inline-flex items-center justify-center gap-2 px-4 py-1.5 text-sm bg-primary hover:bg-primary/90 disabled:opacity-60 text-white rounded-lg transition-colors"
         >
           <Loader2 v-if="apiStatus === 'loading'" class="w-4 h-4 animate-spin" />
@@ -432,7 +485,21 @@ volumes:
           {{ apiStatus === 'loading' ? 'Applying…' : 'Apply & Reload' }}
         </button>
       </div>
-      <!-- API feedback -->
+      <!-- Load feedback -->
+      <div
+        v-if="loadMessage"
+        :class="[
+          'flex items-start gap-2 rounded-lg px-3 py-2 text-sm',
+          loadStatus === 'success'
+            ? 'bg-green-500/10 border border-green-500/30 text-green-600 dark:text-green-400'
+            : 'bg-destructive/10 border border-destructive/30 text-destructive'
+        ]"
+      >
+        <Check v-if="loadStatus === 'success'" class="w-4 h-4 mt-0.5 shrink-0" />
+        <XCircle v-else class="w-4 h-4 mt-0.5 shrink-0" />
+        {{ loadMessage }}
+      </div>
+      <!-- Apply feedback -->
       <div
         v-if="apiMessage"
         :class="[
